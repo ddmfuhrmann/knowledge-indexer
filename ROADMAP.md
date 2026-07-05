@@ -33,6 +33,18 @@ Exercise the `--provider sdk` path live (built but never run against the API).
   reasonable share of items.
 - Depends on **A (scale enrichment)** to hold up on large repos.
 
+### 3. Multi-vendor & local LLM providers — [planned]
+The enrichment provider is already pluggable (`agent` + `sdk` = Anthropic Messages API). Add more
+backends behind the same interface + evidence validator:
+- **OpenAI-compatible provider** — one `/v1/chat/completions` client covers OpenAI **and** most local
+  runners (Ollama, LM Studio, llama.cpp, vLLM) via `--base-url` + `--model`; key from an env var.
+- **Google Gemini** provider (its own request shape).
+- Config precedence: `--provider {anthropic|openai|gemini|local}` + `--base-url`/`--model`, keys from
+  env only (never committed).
+- **Caveat:** small/local models return messier JSON and weaker anchoring — lean on `JsonExtract`
+  (fenced-output tolerant) and the evidence validator (unanchored items already dropped), and report
+  the keep-rate so a weak model is visible rather than silently lossy.
+
 ### A. Scale the enrichment for large repos — [planned]
 Today each task sends the **entire** deterministic material in a single prompt. A large repo blows
 the context / token budget.
@@ -113,6 +125,32 @@ listener, test, throw site and assignment already carries a deterministic `file:
   an `origin` remote is known; otherwise local `file://` or editor deep-links (`vscode://file/…:line`).
 - Keep it deterministic and optional — a `--repo-url <base>` override for hosts that can't be inferred,
   and graceful omission (plain text) when no location resolves.
+
+### M. Steerable analysis — extra prompt context / args — [idea]
+Let the caller inject guidance into the **enrichment** prompt without touching the deterministic layer:
+`--prompt-extra "<text>"` and/or `--context-file <path>` (a domain glossary, naming conventions,
+"focus on security / fiscal flows", priority hints). Appended to the task instructions, never to the
+material — the AST-derived facts stay pure and reproducible.
+- **Must** fold the extra text into the enrichment **cache key** (ties into **C** — cache by
+  `materialHash + promptVersion`), so changing the guidance re-runs instead of serving stale results.
+- Deterministic output is unaffected; only interpretation is steered.
+
+### N. MCP server — serve the index to agents — [idea] ⭐ high-leverage
+Expose the index over **MCP** so a coding agent (Claude Code, Cursor, …) queries the map instead of
+re-deriving structure by reading files. Closes the loop: the index feeds back to the AIs.
+- **Tools over `manifest.json`:** `list_endpoints` / `get_use_case(endpoint)` /
+  `sequence_for(endpoint)` / `callers_of` & `callees_of(class#method)` / `who_publishes` &
+  `who_consumes(event)` / `coverage_gaps` / `tests_for(endpoint)` / `entities` / `state_machine(enum)`.
+- **Serve the *derived* views** — reachability, choreography, coverage, use-case-by-endpoint — the
+  queries that are expensive for an agent to compute ad hoc; plain "read a file" adds nothing over the
+  agent's own tools.
+- **Staleness is the one real risk:** the index is a snapshot at a commit. Return the indexed commit
+  with every answer, and offer an on-demand `reindex` (the deterministic pass is fast) so an agent
+  editing code isn't grounded on stale structure.
+- **Worth it:** the manifest is already the single source of truth and the deterministic layer is
+  reproducible — that makes it *trustworthy grounding*, which is exactly what agents lack. Arguably the
+  highest-leverage consumer of the whole tool. Start read-only over a pre-built manifest; add `reindex`
+  once the query surface proves useful.
 
 ---
 
