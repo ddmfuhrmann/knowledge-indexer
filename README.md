@@ -13,12 +13,14 @@ self-contained, themeable HTML.
 | **Deterministic** | JavaParser AST of the current commit | Same code ⇒ byte-identical output |
 | **Enrichment** | An LLM interpreting *only* the deterministic material | Every item anchored to real evidence; cached by input hash |
 
-The headline enrichment is **use cases** (flows): one BDD scenario per meaningful use case
-(Given/When/Then in domain language), each entering through a real endpoint, classified by
-capability / type / priority, and linked to the real test that verifies it — or flagged as a gap.
-A use case can span sibling CRUD endpoints via `evidence.covers`, so every endpoint is accounted for;
-anything left is listed under "endpoints without a use case". The other two enrichment tasks (state
-transitions, domain map) are structural views that don't fit the use-case card.
+The headline enrichment is **use cases** (flows): **one BDD scenario per entry point**
+(Given/When/Then in domain language), classified by type / priority and linked to the real test that
+verifies it — or flagged as a gap. One scenario per endpoint keeps each card's sequence diagram
+faithful to its own flow. Entry points include HTTP endpoints **and event/message listeners**, so a
+Spring Modulith's async side is first-class; cards are grouped by **entry-point category** (REST /
+Events / Scheduled / …) then by capability. Anything without a scenario is listed under "endpoints
+without a use case". The other two enrichment tasks (state transitions, domain map) are structural
+views that don't fit the use-case card.
 
 Non-negotiables enforced in code:
 
@@ -39,21 +41,25 @@ Everything below the LLM narrative is **deterministic**, scoped to the endpoint'
   `Assert.*`), read from the call site so they name the actual field.
 - **Sequence diagram** — Mermaid, built from the call graph rooted at the endpoint: `Client →
   Controller → Service → domain/repo` with typed dashed **returns**, identical interactions deduped.
-  The outcome is an `alt` block — each reachable exception is a guarded error branch
+  Injected out-of-source collaborators (Spring Data repositories, Elasticsearch/JDBC/HTTP clients) are
+  drawn as an **infra boundary** so the datastore hop is visible (`→ OwnerRepository: save`). The
+  outcome is an `alt` block — each reachable exception is a guarded error branch
   (`Controller --x Client: 409 CONFLICT (ConflictException)`), with **success as the default
-  `else`** — so the diagram reads as the whole request, happy path and error branches, all returning
-  to the Client at the HTTP boundary.
+  `else`**. An **event listener** flow instead enters on an async arrow from its event
+  (`SaleConfirmed -) SaleConfirmedListener`, note *async, after commit*) and is fire-and-forget.
+  Every diagram is interactive: **drag to pan, zoom, fit, copy the Mermaid source, expand to a modal**.
 - **Alternative flows** — the reachable `throw new *Exception(...)` sites (covers `throw` and
   `orElseThrow`), each with its guard condition and its **HTTP status** resolved from the global
   `@ControllerAdvice` (`NotFoundException → 404`, `ConflictException → 409`, …).
 - **Coverage** — the deterministic `verifiedBy` test link, plus an LLM **coverage estimate**
   (`full` / `partial` / `thin` + which branches look untested), grounded in the alternative flows.
 
-The page also has: an **ER** `erDiagram`, a **state machine** `stateDiagram-v2` (from enriched
-transitions over the enum's assignment sites), a **domain** `mindmap`, a collapsed **test catalog**
-table, a **light/dark theme** toggle (system-detected, saved to `localStorage`, re-themes Mermaid),
-and a collapsible **commit-message** box. Deterministic vs LLM items are badged; evidence is in a
-tooltip.
+The page also has: an **ER** `erDiagram` (grouped by module), a **state machine** `stateDiagram-v2`
+(from enriched transitions over the enum's assignment sites), an **Event Choreography** flowchart
+(producer → event → consumer, async edges dashed — the seam a modular monolith communicates over), a
+**domain** `mindmap`, a collapsed **test catalog** table, a **light/dark theme** toggle
+(system-detected, saved to `localStorage`, re-themes Mermaid), and a collapsible **commit-message**
+box. Deterministic vs LLM items are badged; evidence is in a tooltip.
 
 ## Design decisions
 
@@ -67,8 +73,11 @@ tooltip.
   structure.
 - **Project-agnostic, multi-module aware.** Nothing keys on the target's domain — only JPA/Spring
   standard annotations and graceful naming heuristics. Source roots are discovered by walking the
-  tree for **every** `src/main/java` / `src/test/java` (so a multi-module repo is handled), pruning
-  build/VCS/IDE dirs; `--exclude` skips nested or vendored projects. Validated on `spring-petclinic`
+  tree for **every** `src/main/java` / `src/test/java` (so a multi-module repo is handled); build/dep
+  dirs and **any dot-directory** (`.git`, `.idea`, `.knowledge-index`, git worktrees under `.claude`, …)
+  are pruned automatically, and `--exclude` skips further nested/vendored projects. Entry points cover
+  HTTP plus **event/message consumers** (Spring events, `@ApplicationModuleListener`,
+  Kafka/Rabbit/JMS/SQS, functional `Consumer`/`Function` beans). Validated on `spring-petclinic`
   (single-module) and `spring-petclinic-microservices` (8 modules) with zero configuration.
 - **Enrichment provider is pluggable.** Default `agent` = a file handoff where **Claude Code is the
   LLM** (no API key). `sdk` = a thin `java.net.http` client for the Anthropic Messages API
@@ -83,10 +92,11 @@ src/main/java/.../kindex/
   ast/ProjectModel.java    parse working tree with shared symbol solver (multi-module discovery)
   git/GitInfo.java         HEAD hash + commit time + commit message (deterministic generatedAt)
   extract/                 DETERMINISTIC extractors:
-                             Entity, EntryPoint, CallGraph, StateMachine, TestScenario, Migration,
-                             Error (throws + exception→status), InputConstraint, Guard
-  model/                   record data shapes (Entities, EntryPoints, CallGraph, StateMachines,
-                             TestScenarios, Migrations, Flows)
+                             Entity, EntryPoint (http + events), CallGraph (infra boundary), EventFlow
+                             (choreography), StateMachine, TestScenario, Migration, Error
+                             (throws + exception→status), InputConstraint, Guard
+  model/                   record data shapes (Entities, EntryPoints, CallGraph, EventFlows,
+                             StateMachines, TestScenarios, Migrations, Flows)
   hash/ContentHash.java    SHA-256 over canonical JSON
   enrich/                  Deterministic bundle, EvidenceIndex, EnrichmentCache, Enricher, providers
     task/Tasks.java        the 3 tasks: behaviors (use cases), stateTransitions, domains
@@ -129,9 +139,9 @@ agent interpretations that make an example reproducible.
 - **Anchoring:** on `fixtures/order-sample`, deliberately fabricated enrichment items (a transition
   at a non-existent line, a non-existent domain member, coverage for a non-existent endpoint) are
   dropped by `EvidenceIndex`; only evidence-backed items survive.
-- **Full endpoint coverage:** a capability-level use case spans its sibling CRUD endpoints via
-  `covers`, so every HTTP endpoint is accounted for; only non-HTTP entry points (e.g. a
-  `CommandLineRunner`) are left unclassified.
+- **Full entry-point coverage:** one use case per endpoint — HTTP **and** event listeners — so every
+  entry point is accounted for; anything without a scenario is listed explicitly under "endpoints
+  without a use case".
 - **Agnosticism:** validated end-to-end on external `spring-petclinic` (single-module) and
   `spring-petclinic-microservices` (8 Maven modules) with zero configuration.
 - **Robustness / honesty:** on codebases without a given surface (no status enum, no migrations, no
