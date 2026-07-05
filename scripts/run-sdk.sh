@@ -43,8 +43,9 @@ reason_flag=()
 model_label="model"
 case "$*" in *"--task-model"*) model_label="default-model" ;; esac
 echo "[ki] run --provider sdk ${model_label}=$MODEL max-tokens=$MAX_TOKENS thinking=${THINKING:-off}${EFFORT:+ effort=$EFFORT} repo=$REPO out=$OUT ${*:+extra: $*}" >&2
+# ${arr[@]+…} guard: on macOS bash 3.2, expanding an empty array under `set -u` errors.
 "$(ki_bin)" run "$REPO" --provider sdk --model "$MODEL" --max-tokens "$MAX_TOKENS" \
-  "${reason_flag[@]}" --out "$OUT" "$@"
+  ${reason_flag[@]+"${reason_flag[@]}"} --out "$OUT" "$@"
 
 echo >&2
 echo "[ki] done. Open the diagrams with:  scripts/preview.sh $OUT" >&2
