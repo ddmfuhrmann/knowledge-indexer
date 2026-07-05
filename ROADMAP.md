@@ -44,6 +44,12 @@ backends behind the same interface + evidence validator:
 - **Caveat:** small/local models return messier JSON and weaker anchoring — lean on `JsonExtract`
   (fenced-output tolerant) and the evidence validator (unanchored items already dropped), and report
   the keep-rate so a weak model is visible rather than silently lossy.
+- **Provenance:** the model is already recorded per enrichment section; add a **footer line**
+  (provider + model + generated-at) so a run says which model interpreted it — matters once several
+  are in play.
+- **CI note:** GitHub-hosted runners are CPU-only, so a local model on the runner is slow and weak;
+  prefer a cheap hosted OpenAI-compatible endpoint (key in Secrets) for the enrichment, and run the
+  deterministic gate with `--no-llm` (free). See the cost options in the CI discussion.
 
 ### A. Scale the enrichment for large repos — [planned]
 Today each task sends the **entire** deterministic material in a single prompt. A large repo blows
@@ -125,6 +131,11 @@ listener, test, throw site and assignment already carries a deterministic `file:
   an `origin` remote is known; otherwise local `file://` or editor deep-links (`vscode://file/…:line`).
 - Keep it deterministic and optional — a `--repo-url <base>` override for hosts that can't be inferred,
   and graceful omission (plain text) when no location resolves.
+- **In Mermaid diagrams:** don't rely on Mermaid's uneven `click`/`link` support (flowchart has
+  `click`, sequence only participant `link` popups needing `securityLevel: loose`, erDiagram none).
+  We already own the rendered SVG in the pan/zoom layer — post-`mermaid.run`, walk the SVG, match
+  `<text>` nodes to known class names, and wrap them in `<a href>` to the source. One mechanism, all
+  three diagram types, no securityLevel change.
 
 ### M. Steerable analysis — extra prompt context / args — [idea]
 Let the caller inject guidance into the **enrichment** prompt without touching the deterministic layer:

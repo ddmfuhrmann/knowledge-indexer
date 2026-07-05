@@ -4,7 +4,7 @@ A utility that turns a **Spring Boot** repo's working tree into a knowledge inde
 AST extraction, enriched by an LLM only where interpretation is required, rendered to a
 self-contained, themeable HTML.
 
-> Forward plan lives in [ROADMAP.md](ROADMAP.md).
+> Forward plan lives in [ROADMAP.md](ROADMAP.md); notable changes in [CHANGELOG.md](CHANGELOG.md).
 
 ## Two layers, strictly separated
 
