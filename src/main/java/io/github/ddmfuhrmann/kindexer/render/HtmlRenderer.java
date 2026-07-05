@@ -62,24 +62,146 @@ public final class HtmlRenderer {
                         function kindexTheme(){ return document.documentElement.getAttribute('data-theme'); }
                         function mermaidTheme(t){ return t==='dark'?'dark':'neutral'; }
                         mermaid.initialize({startOnLoad:false, theme: mermaidTheme(kindexTheme())});
-                        // Render one diagram, caching its source so it can be re-rendered on theme change.
-                        function renderDiagram(el){
+                        // Cache each diagram's source so it survives re-rendering (theme change).
+                        function prep(el){
                           if(el.dataset.src===undefined) el.dataset.src = el.textContent;
                           el.innerHTML = el.dataset.src;
                           el.removeAttribute('data-processed');
                           el.classList.add('mermaid');
-                          try { mermaid.run({nodes:[el]}); } catch(e){}
+                        }
+                        // Copy the diagram's Mermaid source to the clipboard (usable in mermaid.live etc.).
+                        // Reads the cached source (data-src on inline stages, data-mmd on the modal clone).
+                        function fallbackCopy(txt){
+                          var ta=document.createElement('textarea'); ta.value=txt;
+                          ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+                          try{ document.execCommand('copy'); }catch(e){} document.body.removeChild(ta);
+                        }
+                        function copySource(pre, btn){
+                          var txt = pre.dataset.src || pre.dataset.mmd || ''; if(!txt) return;
+                          function ok(){ var g=btn.textContent; btn.textContent='\\u2713'; btn.title='copied';
+                            setTimeout(function(){ btn.textContent=g; btn.title='copy Mermaid source'; }, 1000); }
+                          if(navigator.clipboard && navigator.clipboard.writeText)
+                            navigator.clipboard.writeText(txt).then(ok, function(){ fallbackCopy(txt); ok(); });
+                          else { fallbackCopy(txt); ok(); }
+                        }
+                        // Pan/zoom core, shared by inline stages and the expand modal. Drag to pan;
+                        // zoom via the +/- buttons (no wheel — the page scrolls a lot); fit, copy, plus one
+                        // context button (expand inline / close in the modal). Pure CSS transform, no lib.
+                        // State + apply/fit are stashed ON the element and refreshed on every call, so the
+                        // once-bound drag listeners always drive the CURRENT svg (survives a theme re-render
+                        // that swaps the svg, and a modal re-open that clones a new one).
+                        function panzoom(pre, opts){
+                          var svg = pre.querySelector('svg'); if(!svg) return;
+                          pre.classList.add('pz');                 // fix the stage height before measuring
+                          var vb = svg.viewBox && svg.viewBox.baseVal;
+                          var w = vb && vb.width ? vb.width : svg.clientWidth;
+                          var h = vb && vb.height ? vb.height : svg.clientHeight;
+                          if(w){ svg.style.width = w+'px'; svg.style.height = h+'px'; }
+                          var st = pre._pz || (pre._pz = {s:1,x:0,y:0});
+                          function apply(){ svg.style.transform = 'translate('+st.x+'px,'+st.y+'px) scale('+st.s+')'; }
+                          function fit(){
+                            var cw = pre.clientWidth, ch = pre.clientHeight;
+                            if(w && h){ st.s = Math.min(cw/w, ch/h, 1.5); st.x = (cw-w*st.s)/2; st.y = (ch-h*st.s)/2; }
+                            else { st.s=1; st.x=0; st.y=0; }
+                            apply();
+                          }
+                          function zoom(f, cx, cy){
+                            var ns = Math.min(8, Math.max(0.1, st.s*f));
+                            st.x = cx-(cx-st.x)*(ns/st.s); st.y = cy-(cy-st.y)*(ns/st.s); st.s = ns; apply();
+                          }
+                          pre._pzApply = apply; pre._pzFit = fit;   // refreshed per call, drive the current svg
+                          fit();
+                          // Controls are wiped when a theme re-render / modal-open resets innerHTML — rebuild if gone.
+                          if(!pre.querySelector('.pz-ctl')){
+                            var bar = document.createElement('div'); bar.className = 'pz-ctl';
+                            var glyphs=['+','\\u2212','\\u2922','\\u29c9',opts.glyph];
+                            var titles=['zoom in','zoom out','fit','copy Mermaid source',opts.title];
+                            glyphs.forEach(function(lbl,i){
+                              var b = document.createElement('button'); b.type='button'; b.textContent = lbl; b.title = titles[i];
+                              b.addEventListener('click', function(e){ e.stopPropagation();
+                                if(i===4){ opts.action(); return; }
+                                if(i===3){ copySource(pre, b); return; }
+                                var r = pre.getBoundingClientRect();
+                                if(i===2) fit(); else zoom(i===0?1.25:0.8, r.width/2, r.height/2);
+                              });
+                              bar.appendChild(b);
+                            });
+                            pre.appendChild(bar);
+                            var hint = document.createElement('div'); hint.className='pz-hint';
+                            hint.textContent = 'drag to pan'; pre.appendChild(hint);
+                          }
+                          if(pre.dataset.pzBound) return; pre.dataset.pzBound = '1';
+                          var drag=false, ox=0, oy=0;
+                          pre.addEventListener('pointerdown', function(e){ if(e.target.closest('.pz-ctl')) return;
+                            drag=true; ox=e.clientX-pre._pz.x; oy=e.clientY-pre._pz.y; pre.classList.add('grabbing');
+                            try{ pre.setPointerCapture(e.pointerId); }catch(_){}
+                          });
+                          pre.addEventListener('pointermove', function(e){ if(!drag) return;
+                            pre._pz.x=e.clientX-ox; pre._pz.y=e.clientY-oy; pre._pzApply();
+                          });
+                          function end(){ drag=false; pre.classList.remove('grabbing'); }
+                          pre.addEventListener('pointerup', end);
+                          pre.addEventListener('pointercancel', end);
+                        }
+                        // Inline stage: the 4th control expands the diagram into an in-page modal.
+                        function enhance(pre){
+                          if(!pre.querySelector('svg')) return;
+                          panzoom(pre, {glyph:'\\u26f6', title:'expand', action:function(){ openModal(pre); }});
+                        }
+                        // Expand modal: a large in-page lightbox holding a fresh clone of the diagram
+                        // with its own pan/zoom. Backdrop click or Esc closes it. Stays inside the page
+                        // (no OS fullscreen), inheriting the current theme.
+                        function modalEls(){
+                          var o = document.getElementById('pz-modal');
+                          if(!o){
+                            o = document.createElement('div'); o.id = 'pz-modal';
+                            var stage = document.createElement('pre'); stage.className = 'mermaid pz-modal-stage';
+                            stage.id = 'pz-modal-stage'; o.appendChild(stage);
+                            o.addEventListener('click', function(e){ if(e.target===o) closeModal(); });
+                            document.body.appendChild(o);
+                          }
+                          return {overlay:o, stage:document.getElementById('pz-modal-stage')};
+                        }
+                        function openModal(srcPre){
+                          var srcSvg = srcPre.querySelector('svg'); if(!srcSvg) return;
+                          var m = modalEls();
+                          m.stage.innerHTML = ''; m.stage._pz = null;      // fresh view each open
+                          m.stage.dataset.mmd = srcPre.dataset.src || srcPre.dataset.mmd || '';  // for copy
+                          var clone = srcSvg.cloneNode(true); clone.removeAttribute('style');
+                          m.stage.appendChild(clone);
+                          m.overlay.style.display = 'flex';
+                          document.body.style.overflow = 'hidden';         // freeze page scroll behind
+                          panzoom(m.stage, {glyph:'\\u2715', title:'close', action:closeModal});
+                        }
+                        function closeModal(){
+                          var o = document.getElementById('pz-modal');
+                          if(o) o.style.display = 'none';
+                          document.body.style.overflow = '';
+                        }
+                        document.addEventListener('keydown', function(e){
+                          if(e.key==='Escape'){ var o=document.getElementById('pz-modal'); if(o && o.style.display!=='none') closeModal(); }
+                        });
+                        // Render a batch in a SINGLE mermaid.run — concurrent per-element runs leave
+                        // stray measuring SVGs that overlap other sections (mindmaps especially).
+                        function renderBatch(nodes){
+                          if(!nodes.length) return;
+                          nodes.forEach(prep);
+                          try {
+                            var p = mermaid.run({nodes:nodes});
+                            if(p && p.then) p.then(function(){ nodes.forEach(enhance); }, function(){});
+                            else nodes.forEach(enhance);
+                          } catch(e){}
                         }
                         window.addEventListener('load', function(){
-                          // Top-level diagrams (ER, state, mindmap) are always visible — render now.
-                          document.querySelectorAll('pre.mermaid:not(.mermaid-lazy)').forEach(renderDiagram);
+                          // Top-level diagrams (ER, state, mindmap) are always visible — render together.
+                          renderBatch([...document.querySelectorAll('pre.mermaid:not(.mermaid-lazy)')]);
                           // Sequence diagrams live inside collapsed <details>; render on first open
                           // (otherwise Mermaid measures a hidden 0-width element and draws nothing).
                           document.querySelectorAll('details.usecase').forEach(function(d){
                             d.addEventListener('toggle', function(){
                               if(!d.open) return;
                               var el=d.querySelector('pre.mermaid-lazy');
-                              if(el && !el.dataset.rendered){ el.dataset.rendered='1'; renderDiagram(el); }
+                              if(el && !el.dataset.rendered){ el.dataset.rendered='1'; renderBatch([el]); }
                             });
                           });
                           // Toggle button: flip theme, persist, re-init Mermaid and re-render live diagrams.
@@ -89,9 +211,7 @@ public final class HtmlRenderer {
                             document.documentElement.setAttribute('data-theme', next);
                             localStorage.setItem('kindex-theme', next);
                             mermaid.initialize({startOnLoad:false, theme: mermaidTheme(next)});
-                            document.querySelectorAll('pre.mermaid, pre.mermaid-lazy').forEach(function(el){
-                              if(el.dataset.src!==undefined) renderDiagram(el);
-                            });
+                            renderBatch([...document.querySelectorAll('pre.mermaid, pre.mermaid-lazy')].filter(function(el){ return el.dataset.src!==undefined; }));
                           });
                         });
                         </script>
@@ -633,34 +753,20 @@ public final class HtmlRenderer {
             h.append("<p class=\"empty\">No JPA entities found.</p></section>\n");
             return;
         }
-        Set<String> names = new HashSet<>();
-        entities.forEach(e -> names.add(e.name()));
-
-        StringBuilder d = new StringBuilder("erDiagram\n");
-        for (EntityModel e : entities) {
-            d.append("  ").append(MermaidSafe.id(e.name())).append(" {\n");
-            for (FieldModel f : e.fields()) {
-                d.append("    ").append(MermaidSafe.type(f.type())).append(' ')
-                        .append(MermaidSafe.id(f.name()));
-                if (f.id()) {
-                    d.append(" PK");
-                }
-                d.append('\n');
-            }
-            d.append("  }\n");
-        }
-        for (EntityModel e : entities) {
-            for (RelationModel r : e.relations()) {
-                if (!names.contains(r.target())) {
-                    continue;
-                }
-                d.append("  ").append(MermaidSafe.id(e.name())).append(' ')
-                        .append(cardinality(r.kind())).append(' ')
-                        .append(MermaidSafe.id(r.target())).append(" : \"")
-                        .append(MermaidSafe.label(r.field())).append("\"\n");
+        // Group by module (package segment after the common base): a modular monolith with few
+        // relations otherwise renders one unreadable strip. One small erDiagram per bounded context.
+        Map<String, List<EntityModel>> byModule = groupByModule(entities);
+        if (byModule.size() <= 1) {
+            h.append(mermaid(erDiagramFor(entities, entities)));
+        } else {
+            h.append("<p class=\"note\">Grouped by module (").append(byModule.size())
+                    .append(" bounded contexts); relations are shown within a module.</p>\n");
+            for (var entry : byModule.entrySet()) {
+                h.append("<h3 class=\"feature\">").append(esc(entry.getKey()))
+                        .append(" <span class=\"ev\">").append(entry.getValue().size()).append(" entities</span></h3>\n");
+                h.append(mermaid(erDiagramFor(entry.getValue(), entry.getValue())));
             }
         }
-        h.append(mermaid(d.toString()));
         if (!migrations.isEmpty()) {
             h.append("<p class=\"note\">Migration-declared foreign keys (best-effort):</p><ul>");
             for (MigrationFk fk : migrations) {
@@ -671,6 +777,77 @@ public final class HtmlRenderer {
             h.append("</ul>");
         }
         h.append("</section>\n");
+    }
+
+    /** An erDiagram for {@code entities}; relations drawn only to targets within {@code relationScope}. */
+    private String erDiagramFor(List<EntityModel> entities, List<EntityModel> relationScope) {
+        Set<String> names = new HashSet<>();
+        relationScope.forEach(e -> names.add(e.name()));
+        StringBuilder d = new StringBuilder("erDiagram\n");
+        for (EntityModel e : entities) {
+            d.append("  ").append(MermaidSafe.id(e.name())).append(" {\n");
+            for (FieldModel f : e.fields()) {
+                d.append("    ").append(MermaidSafe.type(f.type())).append(' ').append(MermaidSafe.id(f.name()));
+                if (f.id()) {
+                    d.append(" PK");
+                }
+                d.append('\n');
+            }
+            d.append("  }\n");
+        }
+        for (EntityModel e : entities) {
+            for (RelationModel r : e.relations()) {
+                if (names.contains(r.target())) {
+                    d.append("  ").append(MermaidSafe.id(e.name())).append(' ').append(cardinality(r.kind()))
+                            .append(' ').append(MermaidSafe.id(r.target())).append(" : \"")
+                            .append(MermaidSafe.label(r.field())).append("\"\n");
+                }
+            }
+        }
+        return d.toString();
+    }
+
+    /** Group entities by module = the package segment right after the base shared by all of them. */
+    private static Map<String, List<EntityModel>> groupByModule(List<EntityModel> entities) {
+        List<String[]> dirs = new ArrayList<>();
+        for (EntityModel e : entities) {
+            dirs.add(dirSegments(e.file()));
+        }
+        int cp = commonPrefixLen(dirs);
+        Map<String, List<EntityModel>> byModule = new java.util.TreeMap<>();
+        for (int i = 0; i < entities.size(); i++) {
+            String[] segs = dirs.get(i);
+            String module = segs.length > cp ? segs[cp] : "core";
+            byModule.computeIfAbsent(module, k -> new ArrayList<>()).add(entities.get(i));
+        }
+        return byModule;
+    }
+
+    private static String[] dirSegments(String file) {
+        if (file == null) {
+            return new String[0];
+        }
+        String f = file.replace('\\', '/');
+        int slash = f.lastIndexOf('/');
+        String dir = slash >= 0 ? f.substring(0, slash) : "";
+        return dir.isEmpty() ? new String[0] : dir.split("/");
+    }
+
+    private static int commonPrefixLen(List<String[]> paths) {
+        if (paths.isEmpty()) {
+            return 0;
+        }
+        int min = paths.stream().mapToInt(p -> p.length).min().orElse(0);
+        int cp = 0;
+        for (; cp < min; cp++) {
+            String seg = paths.get(0)[cp];
+            for (String[] p : paths) {
+                if (!p[cp].equals(seg)) {
+                    return cp;
+                }
+            }
+        }
+        return cp;
     }
 
     private static String cardinality(String kind) {
@@ -921,9 +1098,30 @@ public final class HtmlRenderer {
                 .badge.fact{background:#dafbe1;color:var(--fact)}
                 .badge.llm{background:#fbefff;color:var(--llm);cursor:help;border:1px solid #e5c9ff}
                 .legend{color:var(--muted);font-size:.85rem;margin-top:.6rem}
-                pre.mermaid,pre.mermaid-lazy{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;text-align:center}
+                pre.mermaid,pre.mermaid-lazy{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow:auto;text-align:center;max-height:70vh}
+                /* Contain the rendered SVG so a wide diagram scrolls inside its box instead of
+                   overflowing and overlapping neighbouring sections. */
+                pre.mermaid svg,pre.mermaid-lazy svg{max-width:100%;height:auto}
                 pre.mermaid-lazy{font-size:.75rem;color:var(--muted);text-align:left}
                 pre.mermaid-lazy.mermaid{text-align:center}
+                /* Pan/zoom stage: once rendered, a diagram becomes a fixed-height viewport the
+                   SVG is dragged/zoomed inside (CSS transform, driven by the head script — no lib). */
+                pre.mermaid.pz,pre.mermaid-lazy.pz{position:relative;overflow:hidden;padding:0;cursor:grab;
+                     height:clamp(340px,60vh,640px);max-height:none;text-align:left;touch-action:none}
+                pre.mermaid.pz.grabbing,pre.mermaid-lazy.pz.grabbing{cursor:grabbing}
+                /* In-page expand modal (lightbox) — inherits the current theme, closes on backdrop/Esc. */
+                #pz-modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
+                     background:rgba(0,0,0,.55);padding:2.5vh 2vw}
+                #pz-modal>pre.pz-modal-stage{width:96vw;height:95vh;max-height:none;margin:0;background:var(--card);
+                     border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.45)}
+                pre.mermaid.pz svg,pre.mermaid-lazy.pz svg{max-width:none;transform-origin:0 0;will-change:transform;user-select:none}
+                .pz-ctl{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:5}
+                .pz-ctl button{width:28px;height:28px;padding:0;border:1px solid var(--line);background:var(--card);
+                     color:var(--fg);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;
+                     display:flex;align-items:center;justify-content:center}
+                .pz-ctl button:hover{border-color:var(--accent);color:var(--accent)}
+                .pz-hint{position:absolute;bottom:6px;left:10px;font-size:.68rem;color:var(--muted);
+                     pointer-events:none;opacity:.65;user-select:none}
                 table{border-collapse:collapse;width:100%;font-size:.9rem;margin:.4rem 0}
                 th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
                 th{background:var(--card)}
