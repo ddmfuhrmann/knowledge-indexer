@@ -146,14 +146,15 @@ public final class CallGraphExtractor {
             "AtomicReference", "AtomicBoolean");
 
     /**
-     * If {@code call} is a direct {@code field.method(...)} on an instance field of the caller class
-     * whose type is not a plain value type, return that field type's simple name — the infra
-     * collaborator to draw. Only direct field receivers are considered (not fluent builder chains or
-     * locals), which is enough to surface repositories and datastore/HTTP clients cleanly.
+     * If {@code call} is a {@code field.method(...)} or {@code this.field.method(...)} on an instance
+     * field of the caller class whose type is not a plain value type, return that field type's simple
+     * name — the infra collaborator to draw. Only direct field receivers are considered (not fluent
+     * builder chains or locals), which is enough to surface repositories and datastore/HTTP clients.
      */
     private static String injectedCollaboratorType(MethodCallExpr call, String callerId,
                                                    Map<String, Map<String, String>> injectedFields) {
-        if (call.getScope().isEmpty() || !(call.getScope().get() instanceof NameExpr recv)) {
+        String field = receiverFieldName(call.getScope().orElse(null));
+        if (field == null) {
             return null;
         }
         int hash = callerId.lastIndexOf('#');
@@ -161,8 +162,19 @@ public final class CallGraphExtractor {
         if (fields == null) {
             return null;
         }
-        String type = fields.get(recv.getNameAsString());
+        String type = fields.get(field);
         return type == null || VALUE_TYPES.contains(type) ? null : type;
+    }
+
+    /** Field name if the receiver is {@code field} or {@code this.field}, else null. */
+    private static String receiverFieldName(com.github.javaparser.ast.expr.Expression scope) {
+        if (scope instanceof NameExpr ne) {
+            return ne.getNameAsString();
+        }
+        if (scope instanceof FieldAccessExpr fa && fa.getScope() instanceof com.github.javaparser.ast.expr.ThisExpr) {
+            return fa.getNameAsString();
+        }
+        return null;
     }
 
     private void indexDeclarations(ProjectModel project, Map<String, Decl> index, Set<String> enums,
