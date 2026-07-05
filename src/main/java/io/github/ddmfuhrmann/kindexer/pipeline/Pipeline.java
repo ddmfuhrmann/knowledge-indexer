@@ -6,6 +6,7 @@ import io.github.ddmfuhrmann.kindexer.extract.CallGraphExtractor;
 import io.github.ddmfuhrmann.kindexer.extract.EntityExtractor;
 import io.github.ddmfuhrmann.kindexer.extract.EntryPointExtractor;
 import io.github.ddmfuhrmann.kindexer.extract.ErrorExtractor;
+import io.github.ddmfuhrmann.kindexer.extract.EventFlowExtractor;
 import io.github.ddmfuhrmann.kindexer.extract.GuardExtractor;
 import io.github.ddmfuhrmann.kindexer.extract.InputConstraintExtractor;
 import io.github.ddmfuhrmann.kindexer.extract.MigrationReader;
@@ -52,8 +53,9 @@ public final class Pipeline {
         var exceptionStatuses = errors.exceptionStatuses(project);
         var inputConstraints = new InputConstraintExtractor().extract(project, entryPoints);
         var guardChecks = new GuardExtractor().extract(project);
+        var eventFlows = new EventFlowExtractor().extract(project, entryPoints);
         return new Deterministic(entities, entryPoints, callGraph, stateMachines, tests, migrations,
-                throwSites, exceptionStatuses, inputConstraints, guardChecks);
+                throwSites, exceptionStatuses, inputConstraints, guardChecks, eventFlows);
     }
 
     /** Each artifact carries the content hash of its own data — the enrichment cache key upstream. */
@@ -69,6 +71,7 @@ public final class Pipeline {
         map.put("exceptionStatuses", artifact(det.exceptionStatuses()));
         map.put("inputConstraints", artifact(det.inputConstraints()));
         map.put("guardChecks", artifact(det.guardChecks()));
+        map.put("eventFlows", artifact(det.eventFlows()));
         return map;
     }
 

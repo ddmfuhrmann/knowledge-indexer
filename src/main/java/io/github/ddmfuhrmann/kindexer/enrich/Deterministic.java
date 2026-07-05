@@ -3,6 +3,7 @@ package io.github.ddmfuhrmann.kindexer.enrich;
 import io.github.ddmfuhrmann.kindexer.model.CallGraph;
 import io.github.ddmfuhrmann.kindexer.model.Entities.EntityModel;
 import io.github.ddmfuhrmann.kindexer.model.EntryPoints.EntryPoint;
+import io.github.ddmfuhrmann.kindexer.model.EventFlows.EventFlow;
 import io.github.ddmfuhrmann.kindexer.model.Flows.ExceptionStatus;
 import io.github.ddmfuhrmann.kindexer.model.Flows.GuardCheck;
 import io.github.ddmfuhrmann.kindexer.model.Flows.InputConstraint;
@@ -28,7 +29,8 @@ public record Deterministic(
         List<ThrowSite> throwSites,
         List<ExceptionStatus> exceptionStatuses,
         List<InputConstraint> inputConstraints,
-        List<GuardCheck> guardChecks) {
+        List<GuardCheck> guardChecks,
+        List<EventFlow> eventFlows) {
 
     public EvidenceIndex evidenceIndex() {
         return EvidenceIndex.build(this);
