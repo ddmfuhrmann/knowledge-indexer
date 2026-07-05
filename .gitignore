@@ -9,3 +9,6 @@ build/
 
 # Kept locally for testing, not committed (points at a private project).
 examples/loja-v3/
+
+# macOS
+.DS_Store
