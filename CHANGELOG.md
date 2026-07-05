@@ -8,6 +8,14 @@ everything below the foundation is under **Unreleased**.
 ## [Unreleased]
 
 ### Added
+- **Auto-chunked the `behaviors` enrichment for large repos** — the per-endpoint use-case task used to
+  send the whole deterministic material in one prompt, which on a big app (~140K tokens) blows the
+  token budget and times out non-streaming. It is now split by controller with the **call graph
+  scoped per chunk** (only the sub-graph reachable from the chunk's endpoints), each chunk prompted /
+  cached / validated on its own and merged. Chunks **auto-size** by material (~90K chars ≈ ~50s/call);
+  `--behaviors-chunk N` forces a manual endpoint cap; small repos stay a single unchanged call. A
+  dedup backstop + a sharpened prompt keep it **1:1** (one use case per endpoint) even when a smaller
+  chunk tempts the model to emit a card per branch. (ROADMAP A — chunks still run sequentially.)
 - **Hardened `--provider sdk` (Anthropic Messages API) for real runs** — `thinking` disabled so the
   whole `max_tokens` budget goes to the JSON; `max_tokens` raised 4096 → 16000 and tunable via
   `--max-tokens N`; retry-with-exponential-backoff on 429/5xx/529/I·O honouring `retry-after`; a

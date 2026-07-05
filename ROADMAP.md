@@ -57,12 +57,22 @@ backends behind the same interface + evidence validator. Provider landscape and 
   prefer a cheap hosted OpenAI-compatible endpoint (key in Secrets) for the enrichment, and run the
   deterministic gate with `--no-llm` (free). See the cost options in the CI discussion.
 
-### A. Scale the enrichment for large repos — [planned]
-Today each task sends the **entire** deterministic material in a single prompt. A large repo blows
-the context / token budget.
-- **Chunk** enrichment by slice/feature, run in parallel, cap material per request.
-- Applies to both the `agent` and `sdk` providers.
-- **This is the first thing that will hurt on a big repo.**
+### A. Scale the enrichment for large repos — [partly shipped]
+A large repo used to send the **entire** deterministic material in one prompt, blowing the token
+budget and the request timeout (order-sample 12 endpoints ≈ 9K tokens; a 122-endpoint app ≈ 140K,
+which times out non-streaming).
+- ✅ **Chunked the `behaviors` task** (its material scales with the codebase): split by controller (a
+  controller is never split), and **scope the call graph per chunk** to the sub-graph reachable from
+  the chunk's endpoints — the graph is the main inflator. Each chunk is prompted, cached and
+  validated on its own, then merged; the evidence gate still validates against the full index.
+  `EnrichmentTask.chunks()`; only `behaviors` overrides it.
+- ✅ **Auto-sizes chunks** by material size (~90K chars/chunk ≈ ~50s/call); `--behaviors-chunk N`
+  overrides with a manual endpoint cap. Small repos stay a single unchanged call.
+- ✅ **1:1 kept under chunking** — a smaller prompt tempts the model to emit a card per branch; the
+  prompt + a dedup backstop keep exactly one use case per endpoint.
+- Still open: **run chunks in parallel** (today sequential — outfit ≈ 7 min) and add **streaming** so
+  a single oversized chunk can't hit the timeout. `domains` isn't chunked (it groups across the whole
+  system); it fits so far. The `agent` provider path isn't chunked yet.
 
 ### B. Performance & symbol resolution — [planned]
 Symbol resolution is per-call; thousands of files can get slow.

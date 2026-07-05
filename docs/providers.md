@@ -60,6 +60,12 @@ How the `sdk` call is shaped (in [`HttpAnthropicProvider`](../src/main/java/io/g
   indicative list prices (Haiku $1/$5, Sonnet $3/$15, Opus $5/$25, Fable $10/$50 per 1M in/out) and
   may drift. The Anthropic console only shows aggregated usage/cost — use a dedicated API key to
   attribute a run's spend there.
+- **The `behaviors` task auto-chunks on large repos** — its per-endpoint material scales with the
+  codebase, so on a big app one prompt would blow the token budget / 120s timeout. It's split by
+  controller with the call graph scoped per chunk, each chunk prompted / cached / validated on its own
+  and merged. Chunks auto-size (~90K chars ≈ ~50s/call); `--behaviors-chunk N` forces a manual
+  endpoint cap. Small repos stay a single call. This is also what makes small-context local models
+  (Ollama et al., roadmap 3) viable. Chunks run sequentially today (a 122-endpoint app ≈ 7 min).
 
 ## What actually matters when choosing a model
 
