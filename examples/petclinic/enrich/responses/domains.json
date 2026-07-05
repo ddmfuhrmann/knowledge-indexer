@@ -1,0 +1,27 @@
+[
+  {
+    "domain": "Owners & Pets",
+    "members": ["Owner", "Pet", "PetType", "Person", "OwnerController", "PetController", "OwnerRepository", "PetTypeFormatter"],
+    "rationale": "The core clinic customer data: owners and their pets, with the web controllers and repository that manage them."
+  },
+  {
+    "domain": "Veterinarians",
+    "members": ["Vet", "Specialty", "VetController"],
+    "rationale": "The clinic's veterinarians and their specialties, exposed read-only through the vets page."
+  },
+  {
+    "domain": "Visits",
+    "members": ["Visit", "VisitController"],
+    "rationale": "Scheduling and recording clinical visits for a pet."
+  },
+  {
+    "domain": "Web & System",
+    "members": ["WelcomeController", "CrashController"],
+    "rationale": "Cross-cutting web endpoints: the landing page and the error-demo endpoint."
+  },
+  {
+    "domain": "Shared Kernel",
+    "members": ["BaseEntity", "NamedEntity"],
+    "rationale": "Base persistence types (id, name) reused by the domain entities."
+  }
+]

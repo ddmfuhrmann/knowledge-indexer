@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Index — order-sample</title>
+<style>
+:root{--fg:#1f2328;--muted:#656d76;--line:#d0d7de;--bg:#fff;--accent:#0969da;
+      --fact:#1a7f37;--llm:#8250df;--gap:#cf222e;--card:#f6f8fa;}
+:root[data-theme="dark"]{--fg:#e6edf3;--muted:#8b949e;--line:#30363d;--bg:#0d1117;
+      --accent:#58a6ff;--fact:#3fb950;--llm:#bc8cff;--gap:#f85149;--card:#161b22;}
+*{box-sizing:border-box}
+.theme-toggle{position:absolute;top:1rem;right:1.2rem;width:2rem;height:2rem;cursor:pointer;
+     background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:6px;font-size:1rem;line-height:1}
+.theme-toggle:hover{border-color:var(--accent)}
+body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+     color:var(--fg);background:var(--bg);padding:0 0 4rem}
+header,section,footer{max-width:1080px;margin:0 auto;padding:1.2rem 1.5rem}
+header{border-bottom:1px solid var(--line);position:relative}
+h1{margin:.2rem 0;font-size:1.6rem}
+h2{margin:1.6rem 0 .6rem;font-size:1.25rem;border-bottom:1px solid var(--line);padding-bottom:.3rem}
+h3{margin:1.1rem 0 .4rem;font-size:1.02rem}
+.meta{color:var(--muted);margin-bottom:.6rem}
+.commitbox{margin:.2rem 0 .9rem;padding:.5rem .8rem;background:var(--card);border:1px solid var(--line);
+     border-left:3px solid var(--accent);border-radius:6px;word-break:break-word;
+     font:.85rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);overflow-x:auto;max-width:100%}
+div.commitbox{white-space:pre-wrap}
+details.commitbox>summary{cursor:pointer;font-weight:600;white-space:pre-wrap;word-break:break-word}
+details.commitbox>summary:hover{color:var(--accent)}
+.commitbody{white-space:pre-wrap;margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--line);color:var(--muted)}
+.cards{display:flex;flex-wrap:wrap;gap:.6rem;margin:.4rem 0}
+.cardbox{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.5rem .9rem;min-width:88px}
+.num{font-size:1.5rem;font-weight:700}
+.lbl{color:var(--muted);font-size:.8rem}
+code{background:var(--card);padding:.05rem .3rem;border-radius:4px;font-size:.86em}
+.badge{display:inline-block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+       padding:.1rem .4rem;border-radius:10px;vertical-align:middle}
+.badge.fact{background:#dafbe1;color:var(--fact)}
+.badge.llm{background:#fbefff;color:var(--llm);cursor:help;border:1px solid #e5c9ff}
+.legend{color:var(--muted);font-size:.85rem;margin-top:.6rem}
+pre.mermaid,pre.mermaid-lazy{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;text-align:center}
+pre.mermaid-lazy{font-size:.75rem;color:var(--muted);text-align:left}
+pre.mermaid-lazy.mermaid{text-align:center}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:.4rem 0}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--card)}
+.ev{color:var(--muted);font-size:.78rem}
+.gap{color:var(--gap);font-weight:700}
+.ok{color:var(--fact);font-weight:700}
+.unknown{color:var(--muted)}
+.empty,.note{color:var(--muted)}
+.target{color:var(--accent);font-size:.85rem}
+.target.uncertain{color:var(--muted)}
+ul{margin:.3rem 0 .8rem;padding-left:1.3rem}
+li{margin:.15rem 0}
+footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);margin-top:2rem}
+.sub{color:var(--muted);font-weight:400;font-size:.9rem}
+h3.feature{color:var(--accent);border-bottom:1px dashed var(--line);padding-bottom:.2rem}
+.scenario{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
+          padding:.5rem .7rem;margin:.5rem 0;background:#fff}
+.scenario.gaprow{border-left-color:var(--gap);background:#fff8f8}
+.scentitle{font-weight:600;margin-bottom:.3rem}
+.gherkin{font-size:.9rem;color:#374151;margin:.2rem 0}
+.gherkin .kw{color:var(--llm);font-weight:700}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;
+     padding:.05rem .35rem;border-radius:8px;vertical-align:middle;margin-left:.2rem}
+.tag.type{background:#eef2ff;color:#3730a3}
+.tag.prio-critical{background:#ffe3e3;color:#b91c1c}
+.tag.prio-high{background:#fff0d6;color:#b45309}
+.tag.prio-medium{background:#eef1f4;color:#475569}
+details.usecase{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
+                margin:.4rem 0;background:var(--bg)}
+details.usecase.gaprow{border-left-color:var(--gap);background:#fff8f8}
+details.usecase>summary{cursor:pointer;list-style:none;padding:.5rem .7rem;display:flex;
+                        flex-wrap:wrap;align-items:center;gap:.4rem}
+details.usecase>summary::-webkit-details-marker{display:none}
+details.usecase>summary::before{content:"▸";color:var(--muted);font-size:.8rem}
+details.usecase[open]>summary::before{content:"▾"}
+details.usecase>summary:hover{background:var(--card)}
+.scentitle{font-weight:600}
+.endpoint{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;color:var(--accent);
+          background:#eef4ff;padding:.05rem .35rem;border-radius:4px}
+.uc-body{padding:.1rem .9rem .7rem 1.4rem;border-top:1px dashed var(--line)}
+.gherkin{font-size:.92rem;color:var(--fg);margin:.5rem 0}
+.gherkin>div{margin:.1rem 0}
+.gherkin .kw{display:inline-block;min-width:3.4rem;color:var(--llm);font-weight:700}
+.uc-meta{font-size:.85rem;margin:.4rem 0}
+.uc-meta.gap{color:var(--gap)}
+ul.tight{margin:.2rem 0 .2rem .2rem;padding-left:1.1rem}
+ul.tight li{margin:.05rem 0;font-size:.85rem}
+.status{color:var(--gap);font-weight:700;font-size:.8rem}
+.cov{display:inline-block;font-size:.72rem;font-weight:700;text-transform:uppercase;
+     padding:.05rem .4rem;border-radius:8px}
+.cov-full{background:#dafbe1;color:var(--fact)}
+.cov-partial{background:#fff0d6;color:#b45309}
+.cov-thin{background:#ffe3e3;color:#b91c1c}
+.covroll{margin:.3rem 0 .2rem;font-size:.9rem;color:var(--muted)}
+details.unclassified{margin:1rem 0;border:1px dashed var(--line);border-radius:6px;padding:.3rem .7rem;background:var(--card)}
+details.unclassified>summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+.count{background:var(--gap);color:#fff;border-radius:10px;padding:0 .4rem;font-size:.75rem;font-weight:700}
+/* Dark-mode chip overrides: translucent fills keep the semantic hue readable on dark. */
+[data-theme="dark"] .badge.fact{background:rgba(63,185,80,.16)}
+[data-theme="dark"] .badge.llm{background:rgba(188,140,255,.16);border-color:#3b2d52}
+[data-theme="dark"] .tag.type{background:rgba(88,166,255,.16);color:#a9c7ff}
+[data-theme="dark"] .tag.prio-critical{background:rgba(248,81,73,.16);color:#ff9a92}
+[data-theme="dark"] .tag.prio-high{background:rgba(210,153,34,.2);color:#e3b341}
+[data-theme="dark"] .tag.prio-medium{background:rgba(139,148,158,.2);color:#adbac7}
+[data-theme="dark"] .cov-full{background:rgba(63,185,80,.16);color:#3fb950}
+[data-theme="dark"] .cov-partial{background:rgba(210,153,34,.2);color:#e3b341}
+[data-theme="dark"] .cov-thin{background:rgba(248,81,73,.16);color:#ff9a92}
+[data-theme="dark"] .endpoint{background:rgba(88,166,255,.14)}
+[data-theme="dark"] details.usecase.gaprow{background:rgba(248,81,73,.07)}
+</style>
+<script>(function(){var t=localStorage.getItem('kindex-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+// Theme: resolve saved/system preference, drive both the CSS palette and Mermaid.
+function kindexTheme(){ return document.documentElement.getAttribute('data-theme'); }
+function mermaidTheme(t){ return t==='dark'?'dark':'neutral'; }
+mermaid.initialize({startOnLoad:false, theme: mermaidTheme(kindexTheme())});
+// Render one diagram, caching its source so it can be re-rendered on theme change.
+function renderDiagram(el){
+  if(el.dataset.src===undefined) el.dataset.src = el.textContent;
+  el.innerHTML = el.dataset.src;
+  el.removeAttribute('data-processed');
+  el.classList.add('mermaid');
+  try { mermaid.run({nodes:[el]}); } catch(e){}
+}
+window.addEventListener('load', function(){
+  // Top-level diagrams (ER, state, mindmap) are always visible — render now.
+  document.querySelectorAll('pre.mermaid:not(.mermaid-lazy)').forEach(renderDiagram);
+  // Sequence diagrams live inside collapsed <details>; render on first open
+  // (otherwise Mermaid measures a hidden 0-width element and draws nothing).
+  document.querySelectorAll('details.usecase').forEach(function(d){
+    d.addEventListener('toggle', function(){
+      if(!d.open) return;
+      var el=d.querySelector('pre.mermaid-lazy');
+      if(el && !el.dataset.rendered){ el.dataset.rendered='1'; renderDiagram(el); }
+    });
+  });
+  // Toggle button: flip theme, persist, re-init Mermaid and re-render live diagrams.
+  var btn=document.getElementById('theme-toggle');
+  if(btn) btn.addEventListener('click', function(){
+    var next = kindexTheme()==='dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('kindex-theme', next);
+    mermaid.initialize({startOnLoad:false, theme: mermaidTheme(next)});
+    document.querySelectorAll('pre.mermaid, pre.mermaid-lazy').forEach(function(el){
+      if(el.dataset.src!==undefined) renderDiagram(el);
+    });
+  });
+});
+</script>
+</head><body>
+<header><button id="theme-toggle" class="theme-toggle" title="Toggle light/dark" aria-label="Toggle theme">◐</button><h1>Knowledge Index</h1><div class="meta"><strong>order-sample</strong> · commit <code>uncommitte</code> · 1970-01-01T00:00:00Z</div><div class="cards"><div class="cardbox"><div class="num">1</div><div class="lbl">entities</div></div><div class="cardbox"><div class="num">6</div><div class="lbl">entry points</div></div><div class="cardbox"><div class="num">19</div><div class="lbl">graph nodes</div></div><div class="cardbox"><div class="num">21</div><div class="lbl">call edges</div></div><div class="cardbox"><div class="num">1</div><div class="lbl">state machines</div></div><div class="cardbox"><div class="num">4</div><div class="lbl">test scenarios</div></div></div><div class="legend"><span class="badge fact">deterministic</span> extracted from the AST &nbsp; <span class="badge llm">interpreted</span> LLM, hover for evidence</div></header>
+<section><h2>Use Cases <span class="sub">flows</span> <span class="badge llm" title="Use cases interpreted by agent:claude-code, anchored to endpoints &amp; tests">interpreted</span></h2>
+<div class="cards"><div class="cardbox"><div class="num">6</div><div class="lbl">use cases</div></div><div class="cardbox"><div class="num">4</div><div class="lbl">verified by tests</div></div><div class="cardbox"><div class="num">2</div><div class="lbl">coverage gaps</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">critical gaps</div></div></div>
+<div class="covroll">Coverage estimate <span class="badge llm" title="LLM estimate per use case">interpreted</span>: <span class="cov cov-full">4 full</span> · <span class="cov cov-partial">0 partial</span> · <span class="cov cov-thin">2 thin</span></div>
+<h3 class="feature">Fulfilment</h3>
+<details class="usecase"><summary><span class="scentitle">A paid order is shipped</span><span class="endpoint">POST /orders/{id}/ship</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in PAID status</div><div><span class="kw">When</span> the order is dispatched</div><div><span class="kw">Then</span> the order moves to SHIPPED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OrderController
+  participant OrderService
+  participant OrderRepository
+  participant Order
+  Client->>OrderController: POST /orders/(id)/ship
+  OrderController->>OrderService: ship
+  OrderService->>OrderService: load
+  OrderService->>OrderRepository: findById
+  OrderRepository-->>OrderService: Optional
+  OrderService-->>OrderService: Order
+  OrderService->>Order: markShipped
+  OrderService->>OrderRepository: save
+  OrderRepository-->>OrderService: Order
+  OrderService-->>OrderController: Order
+  OrderController-->>Client: Order
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OrderServiceTest#ship_movesPaidOrderToShipped</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase gaprow"><summary><span class="scentitle">A shipped order is delivered</span><span class="endpoint">POST /orders/{id}/deliver</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in SHIPPED status</div><div><span class="kw">When</span> delivery is confirmed</div><div><span class="kw">Then</span> the order moves to DELIVERED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OrderController
+  participant OrderService
+  participant OrderRepository
+  participant Order
+  Client->>OrderController: POST /orders/(id)/deliver
+  OrderController->>OrderService: deliver
+  OrderService->>OrderService: load
+  OrderService->>OrderRepository: findById
+  OrderRepository-->>OrderService: Optional
+  OrderService-->>OrderService: Order
+  OrderService->>Order: markDelivered
+  OrderService->>OrderRepository: save
+  OrderRepository-->>OrderService: Order
+  OrderService-->>OrderController: Order
+  OrderController-->>Client: Order
+</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the SHIPPED → DELIVERED transition has no test</li></ul></div></div></details>
+<h3 class="feature">Order Management</h3>
+<details class="usecase"><summary><span class="scentitle">Customer places a new order</span><span class="endpoint">POST /orders</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a customer with a basket total</div><div><span class="kw">When</span> the order is submitted</div><div><span class="kw">Then</span> a new order is created in NEW status and persisted</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OrderController
+  participant OrderService
+  participant OrderRepository
+  Client->>OrderController: POST /orders
+  OrderController->>OrderService: place
+  OrderService->>OrderRepository: save
+  OrderRepository-->>OrderService: Order
+  OrderService-->>OrderController: Order
+  OrderController-->>Client: Order
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OrderServiceTest#place_startsInNewStatus</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Payment is confirmed for an order</span><span class="endpoint">POST /orders/{id}/pay</span><span class="tag prio-critical">critical</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in NEW status</div><div><span class="kw">When</span> payment is received</div><div><span class="kw">Then</span> the order moves to PAID</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OrderController
+  participant OrderService
+  participant OrderRepository
+  participant Order
+  Client->>OrderController: POST /orders/(id)/pay
+  OrderController->>OrderService: pay
+  OrderService->>OrderService: load
+  OrderService->>OrderRepository: findById
+  OrderRepository-->>OrderService: Optional
+  OrderService-->>OrderService: Order
+  OrderService->>Order: markPaid
+  OrderService->>OrderRepository: save
+  OrderRepository-->>OrderService: Order
+  OrderService-->>OrderController: Order
+  OrderController-->>Client: Order
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OrderServiceTest#pay_movesOrderToPaid</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">An order is cancelled</span><span class="endpoint">POST /orders/{id}/cancel</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an active order</div><div><span class="kw">When</span> the order is cancelled</div><div><span class="kw">Then</span> the order moves to CANCELLED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OrderController
+  participant OrderService
+  participant OrderRepository
+  participant Order
+  Client->>OrderController: POST /orders/(id)/cancel
+  OrderController->>OrderService: cancel
+  OrderService->>OrderService: load
+  OrderService->>OrderRepository: findById
+  OrderRepository-->>OrderService: Optional
+  OrderService-->>OrderService: Order
+  OrderService->>Order: cancel
+  OrderService->>OrderRepository: save
+  OrderRepository-->>OrderService: Order
+  OrderService-->>OrderController: Order
+  OrderController-->>Client: Order
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OrderServiceTest#cancel_movesOrderToCancelled</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase gaprow"><summary><span class="scentitle">Someone looks up an order by id</span><span class="endpoint">GET /orders/{id}</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing order id</div><div><span class="kw">When</span> the order is requested</div><div><span class="kw">Then</span> the order is returned without changing its state</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OrderController
+  participant OrderService
+  participant OrderRepository
+  Client->>OrderController: GET /orders/(id)
+  OrderController->>OrderService: find
+  OrderService->>OrderService: load
+  OrderService->>OrderRepository: findById
+  OrderRepository-->>OrderService: Optional
+  OrderService-->>OrderService: Order
+  OrderService-->>OrderController: Order
+  OrderController-->>Client: Order
+</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the lookup-by-id read has no test</li></ul></div></div></details>
+</section>
+<section><h2>Entity–Relationship <span class="badge fact">deterministic</span></h2>
+<pre class="mermaid">
+erDiagram
+  Order {
+    Long id PK
+    OrderStatus status
+    BigDecimal total
+  }
+</pre>
+</section>
+<section><h2>State Machines</h2>
+<h3>OrderStatus <span class="badge llm" title="Transitions inferred by agent:claude-code">interpreted</span></h3>
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --> NEW
+  NEW --> PAID : payment received (markPaid)
+  PAID --> SHIPPED : order dispatched (markShipped)
+  SHIPPED --> DELIVERED : delivery confirmed (markDelivered)
+  NEW --> CANCELLED : order cancelled (cancel)
+</pre>
+<p class="note">Evidence:</p><ul><li><code>NEW → PAID</code> — payment received (markPaid) <span class="ev">Order#markPaid (src/main/java/com/example/orders/domain/Order.java:36)</span></li><li><code>PAID → SHIPPED</code> — order dispatched (markShipped) <span class="ev">Order#markShipped (src/main/java/com/example/orders/domain/Order.java:40)</span></li><li><code>SHIPPED → DELIVERED</code> — delivery confirmed (markDelivered) <span class="ev">Order#markDelivered (src/main/java/com/example/orders/domain/Order.java:44)</span></li><li><code>NEW → CANCELLED</code> — order cancelled (cancel) <span class="ev">Order#cancel (src/main/java/com/example/orders/domain/Order.java:48)</span></li></ul></section>
+<section><h2>Domain Map <span class="badge llm" title="Grouping by agent:claude-code">interpreted</span></h2>
+<pre class="mermaid">
+mindmap
+  root((domains))
+    Order Lifecycle
+      Order
+      OrderController
+      OrderService
+      OrderRepository
+</pre>
+<p class="note">Rationale:</p><ul><li><strong>Order Lifecycle</strong>: The full ordering vertical: HTTP surface, application service, the aggregate and its persistence.</li></ul></section>
+<section><h2>Test Catalog <span class="badge fact">deterministic</span></h2>
+<details class="unclassified"><summary>Full test index — 1 classes, 4 scenarios</summary>
+<table><thead><tr><th>Test class</th><th>Target</th><th>#</th><th>Scenarios</th></tr></thead><tbody>
+<tr><td><code>OrderServiceTest</code></td><td><span class="target">OrderService</span></td><td>4</td><td><ul class="tight"><li>placing an order starts it in NEW <span class="ev">place_startsInNewStatus</span></li><li>pay moves order to paid <span class="ev">pay_movesOrderToPaid</span></li><li>ship moves paid order to shipped <span class="ev">ship_movesPaidOrderToShipped</span></li><li>cancel moves order to cancelled <span class="ev">cancel_movesOrderToCancelled</span></li></ul></td></tr>
+</tbody></table></details></section>
+<footer>Generated deterministically from commit <code>uncommitte</code>. Enrichment items are interpretations anchored to code evidence.</footer>
+</body></html>

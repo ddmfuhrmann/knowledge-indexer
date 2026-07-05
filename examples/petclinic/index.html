@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Index — petclinic</title>
+<style>
+:root{--fg:#1f2328;--muted:#656d76;--line:#d0d7de;--bg:#fff;--accent:#0969da;
+      --fact:#1a7f37;--llm:#8250df;--gap:#cf222e;--card:#f6f8fa;}
+:root[data-theme="dark"]{--fg:#e6edf3;--muted:#8b949e;--line:#30363d;--bg:#0d1117;
+      --accent:#58a6ff;--fact:#3fb950;--llm:#bc8cff;--gap:#f85149;--card:#161b22;}
+*{box-sizing:border-box}
+.theme-toggle{position:absolute;top:1rem;right:1.2rem;width:2rem;height:2rem;cursor:pointer;
+     background:var(--card);border:1px solid var(--line);color:var(--fg);border-radius:6px;font-size:1rem;line-height:1}
+.theme-toggle:hover{border-color:var(--accent)}
+body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+     color:var(--fg);background:var(--bg);padding:0 0 4rem}
+header,section,footer{max-width:1080px;margin:0 auto;padding:1.2rem 1.5rem}
+header{border-bottom:1px solid var(--line);position:relative}
+h1{margin:.2rem 0;font-size:1.6rem}
+h2{margin:1.6rem 0 .6rem;font-size:1.25rem;border-bottom:1px solid var(--line);padding-bottom:.3rem}
+h3{margin:1.1rem 0 .4rem;font-size:1.02rem}
+.meta{color:var(--muted);margin-bottom:.6rem}
+.commitbox{margin:.2rem 0 .9rem;padding:.5rem .8rem;background:var(--card);border:1px solid var(--line);
+     border-left:3px solid var(--accent);border-radius:6px;word-break:break-word;
+     font:.85rem/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fg);overflow-x:auto;max-width:100%}
+div.commitbox{white-space:pre-wrap}
+details.commitbox>summary{cursor:pointer;font-weight:600;white-space:pre-wrap;word-break:break-word}
+details.commitbox>summary:hover{color:var(--accent)}
+.commitbody{white-space:pre-wrap;margin-top:.5rem;padding-top:.5rem;border-top:1px dashed var(--line);color:var(--muted)}
+.cards{display:flex;flex-wrap:wrap;gap:.6rem;margin:.4rem 0}
+.cardbox{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.5rem .9rem;min-width:88px}
+.num{font-size:1.5rem;font-weight:700}
+.lbl{color:var(--muted);font-size:.8rem}
+code{background:var(--card);padding:.05rem .3rem;border-radius:4px;font-size:.86em}
+.badge{display:inline-block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+       padding:.1rem .4rem;border-radius:10px;vertical-align:middle}
+.badge.fact{background:#dafbe1;color:var(--fact)}
+.badge.llm{background:#fbefff;color:var(--llm);cursor:help;border:1px solid #e5c9ff}
+.legend{color:var(--muted);font-size:.85rem;margin-top:.6rem}
+pre.mermaid,pre.mermaid-lazy{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;text-align:center}
+pre.mermaid-lazy{font-size:.75rem;color:var(--muted);text-align:left}
+pre.mermaid-lazy.mermaid{text-align:center}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:.4rem 0}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--card)}
+.ev{color:var(--muted);font-size:.78rem}
+.gap{color:var(--gap);font-weight:700}
+.ok{color:var(--fact);font-weight:700}
+.unknown{color:var(--muted)}
+.empty,.note{color:var(--muted)}
+.target{color:var(--accent);font-size:.85rem}
+.target.uncertain{color:var(--muted)}
+ul{margin:.3rem 0 .8rem;padding-left:1.3rem}
+li{margin:.15rem 0}
+footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);margin-top:2rem}
+.sub{color:var(--muted);font-weight:400;font-size:.9rem}
+h3.feature{color:var(--accent);border-bottom:1px dashed var(--line);padding-bottom:.2rem}
+.scenario{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
+          padding:.5rem .7rem;margin:.5rem 0;background:#fff}
+.scenario.gaprow{border-left-color:var(--gap);background:#fff8f8}
+.scentitle{font-weight:600;margin-bottom:.3rem}
+.gherkin{font-size:.9rem;color:#374151;margin:.2rem 0}
+.gherkin .kw{color:var(--llm);font-weight:700}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;
+     padding:.05rem .35rem;border-radius:8px;vertical-align:middle;margin-left:.2rem}
+.tag.type{background:#eef2ff;color:#3730a3}
+.tag.prio-critical{background:#ffe3e3;color:#b91c1c}
+.tag.prio-high{background:#fff0d6;color:#b45309}
+.tag.prio-medium{background:#eef1f4;color:#475569}
+details.usecase{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
+                margin:.4rem 0;background:var(--bg)}
+details.usecase.gaprow{border-left-color:var(--gap);background:#fff8f8}
+details.usecase>summary{cursor:pointer;list-style:none;padding:.5rem .7rem;display:flex;
+                        flex-wrap:wrap;align-items:center;gap:.4rem}
+details.usecase>summary::-webkit-details-marker{display:none}
+details.usecase>summary::before{content:"▸";color:var(--muted);font-size:.8rem}
+details.usecase[open]>summary::before{content:"▾"}
+details.usecase>summary:hover{background:var(--card)}
+.scentitle{font-weight:600}
+.endpoint{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;color:var(--accent);
+          background:#eef4ff;padding:.05rem .35rem;border-radius:4px}
+.uc-body{padding:.1rem .9rem .7rem 1.4rem;border-top:1px dashed var(--line)}
+.gherkin{font-size:.92rem;color:var(--fg);margin:.5rem 0}
+.gherkin>div{margin:.1rem 0}
+.gherkin .kw{display:inline-block;min-width:3.4rem;color:var(--llm);font-weight:700}
+.uc-meta{font-size:.85rem;margin:.4rem 0}
+.uc-meta.gap{color:var(--gap)}
+ul.tight{margin:.2rem 0 .2rem .2rem;padding-left:1.1rem}
+ul.tight li{margin:.05rem 0;font-size:.85rem}
+.status{color:var(--gap);font-weight:700;font-size:.8rem}
+.cov{display:inline-block;font-size:.72rem;font-weight:700;text-transform:uppercase;
+     padding:.05rem .4rem;border-radius:8px}
+.cov-full{background:#dafbe1;color:var(--fact)}
+.cov-partial{background:#fff0d6;color:#b45309}
+.cov-thin{background:#ffe3e3;color:#b91c1c}
+.covroll{margin:.3rem 0 .2rem;font-size:.9rem;color:var(--muted)}
+details.unclassified{margin:1rem 0;border:1px dashed var(--line);border-radius:6px;padding:.3rem .7rem;background:var(--card)}
+details.unclassified>summary{cursor:pointer;color:var(--muted);font-size:.9rem}
+.count{background:var(--gap);color:#fff;border-radius:10px;padding:0 .4rem;font-size:.75rem;font-weight:700}
+/* Dark-mode chip overrides: translucent fills keep the semantic hue readable on dark. */
+[data-theme="dark"] .badge.fact{background:rgba(63,185,80,.16)}
+[data-theme="dark"] .badge.llm{background:rgba(188,140,255,.16);border-color:#3b2d52}
+[data-theme="dark"] .tag.type{background:rgba(88,166,255,.16);color:#a9c7ff}
+[data-theme="dark"] .tag.prio-critical{background:rgba(248,81,73,.16);color:#ff9a92}
+[data-theme="dark"] .tag.prio-high{background:rgba(210,153,34,.2);color:#e3b341}
+[data-theme="dark"] .tag.prio-medium{background:rgba(139,148,158,.2);color:#adbac7}
+[data-theme="dark"] .cov-full{background:rgba(63,185,80,.16);color:#3fb950}
+[data-theme="dark"] .cov-partial{background:rgba(210,153,34,.2);color:#e3b341}
+[data-theme="dark"] .cov-thin{background:rgba(248,81,73,.16);color:#ff9a92}
+[data-theme="dark"] .endpoint{background:rgba(88,166,255,.14)}
+[data-theme="dark"] details.usecase.gaprow{background:rgba(248,81,73,.07)}
+</style>
+<script>(function(){var t=localStorage.getItem('kindex-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+// Theme: resolve saved/system preference, drive both the CSS palette and Mermaid.
+function kindexTheme(){ return document.documentElement.getAttribute('data-theme'); }
+function mermaidTheme(t){ return t==='dark'?'dark':'neutral'; }
+mermaid.initialize({startOnLoad:false, theme: mermaidTheme(kindexTheme())});
+// Render one diagram, caching its source so it can be re-rendered on theme change.
+function renderDiagram(el){
+  if(el.dataset.src===undefined) el.dataset.src = el.textContent;
+  el.innerHTML = el.dataset.src;
+  el.removeAttribute('data-processed');
+  el.classList.add('mermaid');
+  try { mermaid.run({nodes:[el]}); } catch(e){}
+}
+window.addEventListener('load', function(){
+  // Top-level diagrams (ER, state, mindmap) are always visible — render now.
+  document.querySelectorAll('pre.mermaid:not(.mermaid-lazy)').forEach(renderDiagram);
+  // Sequence diagrams live inside collapsed <details>; render on first open
+  // (otherwise Mermaid measures a hidden 0-width element and draws nothing).
+  document.querySelectorAll('details.usecase').forEach(function(d){
+    d.addEventListener('toggle', function(){
+      if(!d.open) return;
+      var el=d.querySelector('pre.mermaid-lazy');
+      if(el && !el.dataset.rendered){ el.dataset.rendered='1'; renderDiagram(el); }
+    });
+  });
+  // Toggle button: flip theme, persist, re-init Mermaid and re-render live diagrams.
+  var btn=document.getElementById('theme-toggle');
+  if(btn) btn.addEventListener('click', function(){
+    var next = kindexTheme()==='dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('kindex-theme', next);
+    mermaid.initialize({startOnLoad:false, theme: mermaidTheme(next)});
+    document.querySelectorAll('pre.mermaid, pre.mermaid-lazy').forEach(function(el){
+      if(el.dataset.src!==undefined) renderDiagram(el);
+    });
+  });
+});
+</script>
+</head><body>
+<header><button id="theme-toggle" class="theme-toggle" title="Toggle light/dark" aria-label="Toggle theme">◐</button><h1>Knowledge Index</h1><div class="meta"><strong>petclinic</strong> · commit <code>b3ee2c53e7</code> · 2026-06-19T13:28:28+01:00</div><details class="commitbox"><summary>Add test for duplicate pet name during update</summary><div class="commitbody">Signed-off-by: sumituppal03 &lt;sumituppal2004@gmail.com&gt;</div></details><div class="cards"><div class="cardbox"><div class="num">9</div><div class="lbl">entities</div></div><div class="cardbox"><div class="num">17</div><div class="lbl">entry points</div></div><div class="cardbox"><div class="num">43</div><div class="lbl">graph nodes</div></div><div class="cardbox"><div class="num">42</div><div class="lbl">call edges</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">state machines</div></div><div class="cardbox"><div class="num">74</div><div class="lbl">test scenarios</div></div></div><div class="legend"><span class="badge fact">deterministic</span> extracted from the AST &nbsp; <span class="badge llm">interpreted</span> LLM, hover for evidence</div></header>
+<section><h2>Use Cases <span class="sub">flows</span> <span class="badge llm" title="Use cases interpreted by agent:claude-code, anchored to endpoints &amp; tests">interpreted</span></h2>
+<div class="cards"><div class="cardbox"><div class="num">8</div><div class="lbl">use cases</div></div><div class="cardbox"><div class="num">8</div><div class="lbl">verified by tests</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">coverage gaps</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">critical gaps</div></div></div>
+<div class="covroll">Coverage estimate <span class="badge llm" title="LLM estimate per use case">interpreted</span>: <span class="cov cov-full">7 full</span> · <span class="cov cov-partial">1 partial</span> · <span class="cov cov-thin">0 thin</span></div>
+<h3 class="feature">Owner Management</h3>
+<details class="usecase"><summary><span class="scentitle">Register a new pet owner</span><span class="endpoint">POST /owners/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 2 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a clinic staffer with a new owner's details</div><div><span class="kw">When</span> the new-owner form is submitted</div><div><span class="kw">Then</span> the owner is created and its detail page is shown</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OwnerController
+  participant BaseEntity
+  Client->>OwnerController: POST /owners/new
+  OwnerController->>BaseEntity: getId
+  BaseEntity-->>OwnerController: Integer
+  OwnerController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processCreationFormSuccess, ClinicServiceTests#shouldInsertOwner</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Reject an owner with invalid details</span><span class="endpoint">POST /owners/new</span><span class="tag prio-medium">medium</span><span class="tag type">validation</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a new-owner form with missing or invalid fields</div><div><span class="kw">When</span> the form is submitted</div><div><span class="kw">Then</span> validation errors are shown and nothing is saved</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OwnerController
+  participant BaseEntity
+  Client->>OwnerController: POST /owners/new
+  OwnerController->>BaseEntity: getId
+  BaseEntity-->>OwnerController: Integer
+  OwnerController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processCreationFormHasErrors</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Search owners by last name</span><span class="endpoint">GET /owners</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> existing owners in the clinic</div><div><span class="kw">When</span> a search by last name is performed</div><div><span class="kw">Then</span> the matching, paginated owners are listed</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OwnerController
+  participant Person
+  participant OwnerRepository
+  participant BaseEntity
+  Client->>OwnerController: GET /owners
+  OwnerController->>Person: getLastName
+  Person-->>OwnerController: String
+  OwnerController->>OwnerController: findPaginatedForOwnersLastName
+  OwnerController->>OwnerRepository: findByLastNameStartingWith
+  OwnerRepository-->>OwnerController: Page
+  OwnerController-->>OwnerController: Page
+  OwnerController->>BaseEntity: getId
+  BaseEntity-->>OwnerController: Integer
+  OwnerController->>OwnerController: addPaginationModel
+  OwnerController-->>OwnerController: String
+  OwnerController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processFindFormByLastName, ClinicServiceTests#shouldFindOwnersByLastName, OwnerControllerTests#processFindFormNoOwnersFound</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Update an owner's details</span><span class="endpoint">POST /owners/{ownerId}/edit</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing owner</div><div><span class="kw">When</span> the edit form is submitted with changes</div><div><span class="kw">Then</span> the owner is updated</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OwnerController
+  participant BaseEntity
+  Client->>OwnerController: POST /owners/(ownerId)/edit
+  OwnerController->>BaseEntity: getId
+  BaseEntity-->>OwnerController: Integer
+  OwnerController->>BaseEntity: setId
+  OwnerController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processUpdateOwnerFormSuccess, ClinicServiceTests#shouldUpdateOwner, OwnerControllerTests#processUpdateOwnerFormHasErrors</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<h3 class="feature">Pet Management</h3>
+<details class="usecase"><summary><span class="scentitle">Add a pet to an owner</span><span class="endpoint">POST /owners/{ownerId}/pets/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 2 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing owner</div><div><span class="kw">When</span> a new pet is submitted for that owner</div><div><span class="kw">Then</span> the pet is created under the owner</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant PetController
+  participant BaseEntity
+  participant NamedEntity
+  participant Owner
+  participant Pet
+  Client->>PetController: POST /owners/(ownerId)/pets/new
+  PetController->>BaseEntity: isNew
+  BaseEntity-->>PetController: boolean
+  PetController->>NamedEntity: getName
+  NamedEntity-->>PetController: String
+  PetController->>Owner: getPet
+  Owner->>Owner: getPet
+  Owner-->>Owner: Pet
+  Owner-->>PetController: Pet
+  PetController->>Pet: getBirthDate
+  Pet-->>PetController: LocalDate
+  PetController->>Owner: addPet
+  Owner->>BaseEntity: isNew
+  BaseEntity-->>Owner: boolean
+  Owner->>Owner: getPets
+  Owner-->>Owner: List
+  PetController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">PetControllerTests#processCreationFormSuccess, ClinicServiceTests#shouldInsertPetIntoDatabaseAndGenerateId</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Reject a pet with a duplicate name for the owner</span><span class="endpoint">POST /owners/{ownerId}/pets/new</span><span class="tag prio-medium">medium</span><span class="tag type">validation</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an owner who already has a pet with the same name</div><div><span class="kw">When</span> another pet with that name is submitted</div><div><span class="kw">Then</span> a validation error is shown and nothing is saved</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant PetController
+  participant BaseEntity
+  participant NamedEntity
+  participant Owner
+  participant Pet
+  Client->>PetController: POST /owners/(ownerId)/pets/new
+  PetController->>BaseEntity: isNew
+  BaseEntity-->>PetController: boolean
+  PetController->>NamedEntity: getName
+  NamedEntity-->>PetController: String
+  PetController->>Owner: getPet
+  Owner->>Owner: getPet
+  Owner-->>Owner: Pet
+  Owner-->>PetController: Pet
+  PetController->>Pet: getBirthDate
+  Pet-->>PetController: LocalDate
+  PetController->>Owner: addPet
+  Owner->>BaseEntity: isNew
+  BaseEntity-->>Owner: boolean
+  Owner->>Owner: getPets
+  Owner-->>Owner: List
+  PetController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">PetControllerTests#processCreationFormWithDuplicateName, PetControllerTests#processCreationFormWithBlankName, PetControllerTests#processCreationFormWithInvalidBirthDate</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<h3 class="feature">Veterinarians</h3>
+<details class="usecase"><summary><span class="scentitle">List the clinic's veterinarians</span><span class="endpoint">GET /vets.html</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> veterinarians registered in the clinic</div><div><span class="kw">When</span> the vets page is requested</div><div><span class="kw">Then</span> the vets and their specialties are listed</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant VetController
+  participant VetRepository
+  Client->>VetController: GET /vets.html
+  VetController->>VetController: findPaginated
+  VetController->>VetRepository: findAll
+  VetRepository-->>VetController: Collection
+  VetController-->>VetController: Page
+  VetController->>VetController: addPaginationModel
+  VetController-->>VetController: String
+  VetController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">ClinicServiceTests#shouldFindVets</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<h3 class="feature">Visits</h3>
+<details class="usecase"><summary><span class="scentitle">Book a visit for a pet</span><span class="endpoint">POST /owners/{ownerId}/pets/{petId}/visits/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing pet</div><div><span class="kw">When</span> a new visit is scheduled</div><div><span class="kw">Then</span> the visit is recorded against the pet</div></div><div class="uc-meta"><strong>Preconditions</strong> <span class="badge fact">deterministic</span><ul class="tight"><li><code>pet</code> required <span class="ev">(guard)</span></li><li><code>petId</code> required <span class="ev">(guard)</span></li><li><code>visit</code> required <span class="ev">(guard)</span></li></ul></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant VisitController
+  participant Visit
+  participant Owner
+  participant Pet
+  Client->>VisitController: POST /owners/(ownerId)/pets/(petId)/visits/new
+  VisitController->>Visit: getDate
+  Visit-->>VisitController: LocalDate
+  VisitController->>Owner: addVisit
+  Owner->>Owner: getPet
+  Owner-->>Owner: Pet
+  Owner->>Pet: addVisit
+  Pet->>Pet: getVisits
+  Pet-->>Pet: Collection
+  VisitController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">ClinicServiceTests#shouldAddNewVisitForPet</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span><ul class="tight"><li>the visit-form validation and controller path have no dedicated test</li></ul></div></div></details>
+<details class="unclassified"><summary>Endpoints without a use case <span class="count">11</span></summary><ul><li><code>GET /</code></li><li><code>GET /oups</code></li><li><code>GET /owners/find</code></li><li><code>GET /owners/new</code></li><li><code>GET /owners/{ownerId}</code></li><li><code>GET /owners/{ownerId}/edit</code></li><li><code>GET /owners/{ownerId}/pets/new</code></li><li><code>GET /owners/{ownerId}/pets/{petId}/edit</code></li><li><code>GET /owners/{ownerId}/pets/{petId}/visits/new</code></li><li><code>GET /vets</code></li><li><code>POST /owners/{ownerId}/pets/{petId}/edit</code></li></ul></details>
+</section>
+<section><h2>Entity–Relationship <span class="badge fact">deterministic</span></h2>
+<pre class="mermaid">
+erDiagram
+  BaseEntity {
+    Integer id PK
+  }
+  NamedEntity {
+    String name
+  }
+  Owner {
+    String address
+    String city
+    String telephone
+  }
+  Person {
+    String firstName
+    String lastName
+  }
+  Pet {
+    LocalDate birthDate
+  }
+  PetType {
+  }
+  Specialty {
+  }
+  Vet {
+  }
+  Visit {
+    LocalDate date
+    String description
+  }
+  Owner ||--o{ Pet : "pets"
+  Pet }o--|| PetType : "type"
+  Pet ||--o{ Visit : "visits"
+  Vet }o--o{ Specialty : "specialties"
+</pre>
+</section>
+<section><h2>State Machines</h2>
+<p class="empty">No status/state enum detected — nothing to model. (Deterministic degradation: the section is simply empty.)</p></section>
+<section><h2>Domain Map <span class="badge llm" title="Grouping by agent:claude-code">interpreted</span></h2>
+<pre class="mermaid">
+mindmap
+  root((domains))
+    Owners & Pets
+      Owner
+      Pet
+      PetType
+      Person
+      OwnerController
+      PetController
+      OwnerRepository
+    Veterinarians
+      Vet
+      Specialty
+      VetController
+    Visits
+      Visit
+      VisitController
+    Web & System
+      WelcomeController
+      CrashController
+    Shared Kernel
+      BaseEntity
+      NamedEntity
+</pre>
+<p class="note">Rationale:</p><ul><li><strong>Owners &amp; Pets</strong>: The core clinic customer data: owners and their pets, with the web controllers and repository that manage them.</li><li><strong>Veterinarians</strong>: The clinic's veterinarians and their specialties, exposed read-only through the vets page.</li><li><strong>Visits</strong>: Scheduling and recording clinical visits for a pet.</li><li><strong>Web &amp; System</strong>: Cross-cutting web endpoints: the landing page and the error-demo endpoint.</li><li><strong>Shared Kernel</strong>: Base persistence types (id, name) reused by the domain entities.</li></ul></section>
+<section><h2>Test Catalog <span class="badge fact">deterministic</span></h2>
+<details class="unclassified"><summary>Full test index — 18 classes, 74 scenarios</summary>
+<table><thead><tr><th>Test class</th><th>Target</th><th>#</th><th>Scenarios</th></tr></thead><tbody>
+<tr><td><code>ClinicServiceTests</code></td><td><span class="target uncertain">ClinicService (?)</span></td><td>10</td><td><ul class="tight"><li>should find owners by last name <span class="ev">shouldFindOwnersByLastName</span></li><li>should find single owner with pet <span class="ev">shouldFindSingleOwnerWithPet</span></li><li>should insert owner <span class="ev">shouldInsertOwner</span></li><li>should update owner <span class="ev">shouldUpdateOwner</span></li><li>should find all pet types <span class="ev">shouldFindAllPetTypes</span></li><li>should insert pet into database and generate id <span class="ev">shouldInsertPetIntoDatabaseAndGenerateId</span></li><li>should update pet name <span class="ev">shouldUpdatePetName</span></li><li>should find vets <span class="ev">shouldFindVets</span></li><li>should add new visit for pet <span class="ev">shouldAddNewVisitForPet</span></li><li>should find visits by pet id <span class="ev">shouldFindVisitsByPetId</span></li></ul></td></tr>
+<tr><td><code>CrashControllerIntegrationTests</code></td><td><span class="target uncertain">CrashControllerIntegration (?)</span></td><td>2</td><td><ul class="tight"><li>trigger exception json <span class="ev">triggerExceptionJson</span></li><li>trigger exception html <span class="ev">triggerExceptionHtml</span></li></ul></td></tr>
+<tr><td><code>CrashControllerTests</code></td><td><span class="target">CrashController</span></td><td>1</td><td><ul class="tight"><li>trigger exception <span class="ev">triggerException</span></li></ul></td></tr>
+<tr><td><code>I18nPropertiesSyncTest</code></td><td><span class="target uncertain">I18nPropertiesSync (?)</span></td><td>2</td><td><ul class="tight"><li>check non internationalized strings <span class="ev">checkNonInternationalizedStrings</span></li><li>check i18n property files are in sync <span class="ev">checkI18nPropertyFilesAreInSync</span></li></ul></td></tr>
+<tr><td><code>MySqlIntegrationTests</code></td><td><span class="target uncertain">MySqlIntegration (?)</span></td><td>2</td><td><ul class="tight"><li>find all <span class="ev">findAll</span></li><li>owner details <span class="ev">ownerDetails</span></li></ul></td></tr>
+<tr><td><code>OwnerControllerTests</code></td><td><span class="target">OwnerController</span></td><td>13</td><td><ul class="tight"><li>init creation form <span class="ev">initCreationForm</span></li><li>process creation form success <span class="ev">processCreationFormSuccess</span></li><li>process creation form has errors <span class="ev">processCreationFormHasErrors</span></li><li>init find form <span class="ev">initFindForm</span></li><li>process find form success <span class="ev">processFindFormSuccess</span></li><li>process find form by last name <span class="ev">processFindFormByLastName</span></li><li>process find form no owners found <span class="ev">processFindFormNoOwnersFound</span></li><li>init update owner form <span class="ev">initUpdateOwnerForm</span></li><li>process update owner form success <span class="ev">processUpdateOwnerFormSuccess</span></li><li>process update owner form unchanged success <span class="ev">processUpdateOwnerFormUnchangedSuccess</span></li><li>process update owner form has errors <span class="ev">processUpdateOwnerFormHasErrors</span></li><li>show owner <span class="ev">showOwner</span></li><li>process update owner form with id mismatch <span class="ev">processUpdateOwnerFormWithIdMismatch</span></li></ul></td></tr>
+<tr><td><code>PetClinicIntegrationTests</code></td><td><span class="target uncertain">PetClinicIntegration (?)</span></td><td>3</td><td><ul class="tight"><li>find all <span class="ev">findAll</span></li><li>owner details <span class="ev">ownerDetails</span></li><li>owner list <span class="ev">ownerList</span></li></ul></td></tr>
+<tr><td><code>PetControllerTests</code></td><td><span class="target">PetController</span></td><td>12</td><td><ul class="tight"><li>init creation form <span class="ev">initCreationForm</span></li><li>process creation form success <span class="ev">processCreationFormSuccess</span></li><li>process creation form with blank name <span class="ev">processCreationFormWithBlankName</span></li><li>process creation form with duplicate name <span class="ev">processCreationFormWithDuplicateName</span></li><li>process creation form with missing pet type <span class="ev">processCreationFormWithMissingPetType</span></li><li>process creation form with invalid birth date <span class="ev">processCreationFormWithInvalidBirthDate</span></li><li>init update form <span class="ev">initUpdateForm</span></li><li>process update form success <span class="ev">processUpdateFormSuccess</span></li><li>process update form with same name <span class="ev">processUpdateFormWithSameName</span></li><li>process update form with duplicate name <span class="ev">processUpdateFormWithDuplicateName</span></li><li>process update form with invalid birth date <span class="ev">processUpdateFormWithInvalidBirthDate</span></li><li>process update form with blank name <span class="ev">processUpdateFormWithBlankName</span></li></ul></td></tr>
+<tr><td><code>PetTypeFormatterTests</code></td><td><span class="target">PetTypeFormatter</span></td><td>3</td><td><ul class="tight"><li>test print <span class="ev">testPrint</span></li><li>should parse <span class="ev">shouldParse</span></li><li>should throw parse exception <span class="ev">shouldThrowParseException</span></li></ul></td></tr>
+<tr><td><code>PetValidatorTests</code></td><td><span class="target">PetValidator</span></td><td>4</td><td><ul class="tight"><li>validate <span class="ev">validate</span></li><li>validate with invalid pet name <span class="ev">validateWithInvalidPetName</span></li><li>validate with invalid pet type <span class="ev">validateWithInvalidPetType</span></li><li>validate with invalid birth date <span class="ev">validateWithInvalidBirthDate</span></li></ul></td></tr>
+<tr><td><code>PostgresIntegrationTests</code></td><td><span class="target uncertain">PostgresIntegration (?)</span></td><td>2</td><td><ul class="tight"><li>find all <span class="ev">findAll</span></li><li>owner details <span class="ev">ownerDetails</span></li></ul></td></tr>
+<tr><td><code>ProcessCreationFormHasErrors</code></td><td><span class="unknown">—</span></td><td>5</td><td><ul class="tight"><li>process creation form with blank name <span class="ev">processCreationFormWithBlankName</span></li><li>process creation form with duplicate name <span class="ev">processCreationFormWithDuplicateName</span></li><li>process creation form with missing pet type <span class="ev">processCreationFormWithMissingPetType</span></li><li>process creation form with invalid birth date <span class="ev">processCreationFormWithInvalidBirthDate</span></li><li>init update form <span class="ev">initUpdateForm</span></li></ul></td></tr>
+<tr><td><code>ProcessUpdateFormHasErrors</code></td><td><span class="unknown">—</span></td><td>3</td><td><ul class="tight"><li>process update form with duplicate name <span class="ev">processUpdateFormWithDuplicateName</span></li><li>process update form with invalid birth date <span class="ev">processUpdateFormWithInvalidBirthDate</span></li><li>process update form with blank name <span class="ev">processUpdateFormWithBlankName</span></li></ul></td></tr>
+<tr><td><code>ValidateHasErrors</code></td><td><span class="unknown">—</span></td><td>3</td><td><ul class="tight"><li>validate with invalid pet name <span class="ev">validateWithInvalidPetName</span></li><li>validate with invalid pet type <span class="ev">validateWithInvalidPetType</span></li><li>validate with invalid birth date <span class="ev">validateWithInvalidBirthDate</span></li></ul></td></tr>
+<tr><td><code>ValidatorTests</code></td><td><span class="target uncertain">Validator (?)</span></td><td>2</td><td><ul class="tight"><li>should not validate when first name empty <span class="ev">shouldNotValidateWhenFirstNameEmpty</span></li><li>should not validate when last name empty <span class="ev">shouldNotValidateWhenLastNameEmpty</span></li></ul></td></tr>
+<tr><td><code>VetControllerTests</code></td><td><span class="target">VetController</span></td><td>2</td><td><ul class="tight"><li>show vet list html <span class="ev">showVetListHtml</span></li><li>show resources vet list <span class="ev">showResourcesVetList</span></li></ul></td></tr>
+<tr><td><code>VetTests</code></td><td><span class="target">Vet</span></td><td>1</td><td><ul class="tight"><li>serialization <span class="ev">serialization</span></li></ul></td></tr>
+<tr><td><code>VisitControllerTests</code></td><td><span class="target">VisitController</span></td><td>4</td><td><ul class="tight"><li>init new visit form <span class="ev">initNewVisitForm</span></li><li>process new visit form success <span class="ev">processNewVisitFormSuccess</span></li><li>process new visit form has errors <span class="ev">processNewVisitFormHasErrors</span></li><li>process new visit form has errors when visit date is not in future <span class="ev">processNewVisitFormHasErrorsWhenVisitDateIsNotInFuture</span></li></ul></td></tr>
+</tbody></table></details></section>
+<footer>Generated deterministically from commit <code>b3ee2c53e7</code>. Enrichment items are interpretations anchored to code evidence.</footer>
+</body></html>

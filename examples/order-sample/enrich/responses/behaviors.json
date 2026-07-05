@@ -1,0 +1,74 @@
+[
+  {
+    "feature": "Order Management",
+    "scenario": "Customer places a new order",
+    "given": "a customer with a basket total",
+    "when": "the order is submitted",
+    "then": "a new order is created in NEW status and persisted",
+    "type": "happy-path", "priority": "high",
+    "verifiedBy": ["OrderServiceTest#place_startsInNewStatus"],
+    "gap": false,
+    "coverage": { "level": "full", "untested": [] },
+    "evidence": { "entryPoint": "http:POST /orders", "nodes": ["com.example.orders.service.OrderService#place"], "assignmentSites": ["src/main/java/com/example/orders/domain/Order.java:32"] }
+  },
+  {
+    "feature": "Order Management",
+    "scenario": "Payment is confirmed for an order",
+    "given": "an order in NEW status",
+    "when": "payment is received",
+    "then": "the order moves to PAID",
+    "type": "lifecycle", "priority": "critical",
+    "verifiedBy": ["OrderServiceTest#pay_movesOrderToPaid"],
+    "gap": false,
+    "coverage": { "level": "full", "untested": [] },
+    "evidence": { "entryPoint": "http:POST /orders/{id}/pay", "nodes": ["com.example.orders.domain.Order#markPaid"], "assignmentSites": ["src/main/java/com/example/orders/domain/Order.java:36"] }
+  },
+  {
+    "feature": "Fulfilment",
+    "scenario": "A paid order is shipped",
+    "given": "an order in PAID status",
+    "when": "the order is dispatched",
+    "then": "the order moves to SHIPPED",
+    "type": "lifecycle", "priority": "high",
+    "verifiedBy": ["OrderServiceTest#ship_movesPaidOrderToShipped"],
+    "gap": false,
+    "coverage": { "level": "full", "untested": [] },
+    "evidence": { "entryPoint": "http:POST /orders/{id}/ship", "nodes": ["com.example.orders.domain.Order#markShipped"], "assignmentSites": ["src/main/java/com/example/orders/domain/Order.java:40"] }
+  },
+  {
+    "feature": "Fulfilment",
+    "scenario": "A shipped order is delivered",
+    "given": "an order in SHIPPED status",
+    "when": "delivery is confirmed",
+    "then": "the order moves to DELIVERED",
+    "type": "lifecycle", "priority": "high",
+    "verifiedBy": [],
+    "gap": true,
+    "coverage": { "level": "thin", "untested": ["the SHIPPED → DELIVERED transition has no test"] },
+    "evidence": { "entryPoint": "http:POST /orders/{id}/deliver", "nodes": ["com.example.orders.domain.Order#markDelivered"], "assignmentSites": ["src/main/java/com/example/orders/domain/Order.java:44"] }
+  },
+  {
+    "feature": "Order Management",
+    "scenario": "An order is cancelled",
+    "given": "an active order",
+    "when": "the order is cancelled",
+    "then": "the order moves to CANCELLED",
+    "type": "lifecycle", "priority": "high",
+    "verifiedBy": ["OrderServiceTest#cancel_movesOrderToCancelled"],
+    "gap": false,
+    "coverage": { "level": "full", "untested": [] },
+    "evidence": { "entryPoint": "http:POST /orders/{id}/cancel", "nodes": ["com.example.orders.domain.Order#cancel"], "assignmentSites": ["src/main/java/com/example/orders/domain/Order.java:48"] }
+  },
+  {
+    "feature": "Order Management",
+    "scenario": "Someone looks up an order by id",
+    "given": "an existing order id",
+    "when": "the order is requested",
+    "then": "the order is returned without changing its state",
+    "type": "happy-path", "priority": "medium",
+    "verifiedBy": [],
+    "gap": true,
+    "coverage": { "level": "thin", "untested": ["the lookup-by-id read has no test"] },
+    "evidence": { "entryPoint": "http:GET /orders/{id}", "nodes": ["com.example.orders.service.OrderService#find"], "assignmentSites": [] }
+  }
+]

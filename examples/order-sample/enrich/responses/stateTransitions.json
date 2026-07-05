@@ -1,0 +1,26 @@
+[
+  {
+    "from": "NEW",
+    "to": "PAID",
+    "trigger": "payment received (markPaid)",
+    "evidence": { "class": "Order", "method": "markPaid", "file": "src/main/java/com/example/orders/domain/Order.java", "line": 36 }
+  },
+  {
+    "from": "PAID",
+    "to": "SHIPPED",
+    "trigger": "order dispatched (markShipped)",
+    "evidence": { "class": "Order", "method": "markShipped", "file": "src/main/java/com/example/orders/domain/Order.java", "line": 40 }
+  },
+  {
+    "from": "SHIPPED",
+    "to": "DELIVERED",
+    "trigger": "delivery confirmed (markDelivered)",
+    "evidence": { "class": "Order", "method": "markDelivered", "file": "src/main/java/com/example/orders/domain/Order.java", "line": 44 }
+  },
+  {
+    "from": "NEW",
+    "to": "CANCELLED",
+    "trigger": "order cancelled (cancel)",
+    "evidence": { "class": "Order", "method": "cancel", "file": "src/main/java/com/example/orders/domain/Order.java", "line": 48 }
+  }
+]

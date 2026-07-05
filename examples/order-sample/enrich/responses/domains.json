@@ -1,0 +1,7 @@
+[
+  {
+    "domain": "Order Lifecycle",
+    "members": ["Order", "OrderController", "OrderService", "OrderRepository"],
+    "rationale": "The full ordering vertical: HTTP surface, application service, the aggregate and its persistence."
+  }
+]
