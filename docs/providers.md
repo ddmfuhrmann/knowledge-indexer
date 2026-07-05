@@ -4,6 +4,11 @@ The **deterministic** layer never calls an LLM. Only the **enrichment** layer (u
 transitions, domain map) does, behind a pluggable provider. This note covers what works today and the
 provider landscape for [roadmap item 3 (multi-vendor / local)](../ROADMAP.md).
 
+Two hosted-capable providers are wired up: `--provider sdk` (Anthropic Messages API) and
+`--provider openai` (any OpenAI `/v1/chat/completions` endpoint — hosted **or** local). Both share the
+enrichment cache and the evidence validator, so a weaker model degrades to a low keep-rate instead of
+breaking generation.
+
 ## Today: the Anthropic SDK path — `--provider sdk`
 
 The only hosted provider wired up right now. Key comes from the environment, never a flag or file.
@@ -67,6 +72,58 @@ How the `sdk` call is shaped (in [`HttpAnthropicProvider`](../src/main/java/io/g
   endpoint cap. Small repos stay a single call. This is also what makes small-context local models
   (Ollama et al., roadmap 3) viable. Chunks run sequentially today (a 122-endpoint app ≈ 7 min).
 
+## OpenAI-compatible path — `--provider openai` (hosted + local / Ollama)
+
+One client covers **any** endpoint speaking the OpenAI `/v1/chat/completions` shape: hosted (OpenAI,
+Groq, OpenRouter, DeepInfra/Together/Fireworks) **and** local runners (Ollama, LM Studio, llama.cpp,
+vLLM). For which local model to pick and the per-model `reasoning_effort` values, see the
+[Ollama/OpenAI model benchmark](ollama_benchmark.md). The `--base-url` (must include `/v1`) and `--model` pick the backend; `--model` is **required**
+(there is no sensible default across vendors). The key comes from `OPENAI_API_KEY` and is **optional**
+— a local model needs none, so when it is unset no `Authorization` header is sent.
+
+```bash
+BIN=build/install/knowledge-indexer/bin/knowledge-indexer
+
+# local Ollama — no key, no cost:
+$BIN run <repo> --provider openai --base-url http://localhost:11434/v1 --model qwen2.5-coder:7b --out out/
+
+# hosted OpenAI-compatible (key in the env):
+OPENAI_API_KEY=… $BIN run <repo> --provider openai --model gpt-4o-mini --out out/
+# Groq / OpenRouter: same, with --base-url https://api.groq.com/openai/v1 (or the aggregator's URL).
+```
+
+The request is `{model, max_tokens, temperature:0, messages:[{role:user, content:<prompt>}]}` plus
+`reasoning_effort` when `--reasoning-effort LVL` is set. `temperature:0` maximises consistency/keep-rate.
+Retries mirror the Anthropic path (429/5xx/I·O, exponential backoff honouring `retry-after`), except a
+**timeout fails fast** (no retry — a slow local model won't get faster on retry) after
+`DEFAULT_TIMEOUT_S`=300s (override with `KINDEXER_OPENAI_TIMEOUT_S`). `--thinking`/`--effort` are the
+Anthropic knobs and are ignored here; use `--reasoning-effort` instead. Token usage is read from the
+response `usage` (`prompt_tokens`/`completion_tokens`) and logged per call; cost is `n/a` (unknown
+per-model / free for local). The model id recorded in the manifest + footer is `openai:<model>`.
+
+> **Ollama caveat #1 — thinking is ON by default and burns the budget.** A thinking-capable model
+> (gemma, qwen3, gpt-oss, deepseek-r1) returns a `reasoning` field over Ollama's OpenAI endpoint by
+> default, spending most of `max_tokens` on chain-of-thought *before* the JSON — which then truncates
+> mid-array and validates to **zero** items (the same failure the Anthropic path disables `thinking`
+> for). Pass **`--reasoning-effort LVL`** to tame it — but **the effective value is model-specific**:
+> `gemma4` (12b/26b) wants `none` (disables it); `gpt-oss:20b` reasons *more* on `none` and needs
+> `low` (its minimum). `deepseek-r1` ignores every value (always thinks) → unusable here. `think:false`
+> and `chat_template_kwargs` are not honoured by the endpoint — only `reasoning_effort` is. Measured on
+> `order-sample`/behaviors: gemma4:12b `none` → 12/12 (~3.7K tok, was 0 + truncation); gpt-oss:20b
+> `low` → 12/12 in ~53s (the fastest full-coverage model). The `run-ollama.sh` helper defaults
+> `REASONING=none` (right for gemma; pass `REASONING=low` for gpt-oss).
+
+> **Ollama caveat #2 — context window.** Ollama defaults to a small context (`num_ctx`, ~2–4K) and
+> **silently truncates** a longer prompt, which starves anchoring and tanks the keep-rate (you'll see
+> a low `usage in` vs the `~N tok` estimate). Raise it for real runs — e.g. `OLLAMA_CONTEXT_LENGTH`
+> when starting `ollama serve`, or a `Modelfile` with `PARAMETER num_ctx 16384`. On large repos the
+> `behaviors` auto-chunking (below) already shrinks each prompt, which helps small-context local models.
+
+> **Ollama caveat #3 — small models ramble; cap `--max-tokens`.** Left with a big budget a small model
+> keeps generating past the JSON, so each call is slow. Keep `--max-tokens` modest (the helper defaults
+> 4096) — with `reasoning_effort:none` the anchored JSON is compact, so a low cap is both faster and
+> lossless.
+
 ## What actually matters when choosing a model
 
 Enrichment output is validated: **every item must resolve to a real code anchor or it's dropped**
@@ -83,12 +140,12 @@ tiny local model on keep-rate for the same effort.
 ## The provider landscape (for multi-vendor — roadmap item 3)
 
 Most of these speak the **OpenAI `/v1/chat/completions`** shape, so a *single* OpenAI-compatible
-provider (`--base-url` + `--model`) covers hosted **and** local. Only Anthropic and Google need their
-own request shape.
+provider (`--provider openai --base-url … --model …`, now shipped) covers hosted **and** local. Only
+Anthropic and Google need their own request shape.
 
 | Provider | OpenAI-compatible | Notes |
 |---|---|---|
-| **Anthropic** | no (own API) | wired up today; best JSON/anchoring reliability |
+| **Anthropic** | no (own API) | `--provider sdk`; best JSON/anchoring reliability |
 | **Groq** | yes | LPU, very fast + cheap, generous free tier — strong CI pick |
 | **OpenRouter** | yes | aggregator; swap models via one key, some free tiers |
 | **DeepInfra / Together / Fireworks** | yes | cheap hosted open models (Llama, Qwen, …) |
@@ -102,7 +159,9 @@ small models and slow CPU inference — best on a dev box with a GPU, not a CI r
 
 ## Keys & safety
 
-- Keys come from **environment variables only** (`ANTHROPIC_API_KEY`, later `OPENAI_API_KEY`,
+- Keys come from **environment variables only** (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, later
   `GEMINI_API_KEY`, …). Never a CLI flag, never committed. In CI, use repo/organization **Secrets**.
+  `OPENAI_API_KEY` is optional for a local endpoint (Ollama) — omit it and no `Authorization` header
+  is sent.
 - A failed LLM call leaves that enrichment section empty and never breaks generation — output degrades
   gracefully to deterministic-only.

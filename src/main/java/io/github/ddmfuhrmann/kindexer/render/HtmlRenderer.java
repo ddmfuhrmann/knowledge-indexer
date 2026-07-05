@@ -231,7 +231,13 @@ public final class HtmlRenderer {
 
         h.append("<footer>Generated deterministically from commit <code>")
                 .append(esc(shortCommit(m.project().commit())))
-                .append("</code>. Enrichment items are interpretations anchored to code evidence.</footer>\n");
+                .append("</code>. Enrichment items are interpretations anchored to code evidence.");
+        String provenance = enrichmentProvenance(m);
+        if (!provenance.isEmpty()) {
+            h.append("<br><span class=\"provenance\">Enriched by ").append(esc(provenance))
+                    .append(" · generated ").append(esc(m.project().generatedAt())).append("</span>");
+        }
+        h.append("</footer>\n");
         h.append("</body></html>\n");
         return h.toString();
     }
@@ -1158,6 +1164,18 @@ public final class HtmlRenderer {
         return s == null ? "none" : s.model();
     }
 
+    /** Distinct model ids that actually interpreted a section, sorted (deterministic); empty on --no-llm. */
+    private String enrichmentProvenance(Manifest m) {
+        java.util.Set<String> models = new java.util.TreeSet<>();
+        for (Manifest.EnrichmentSection s : m.enrichment().values()) {
+            String model = s.model();
+            if (model != null && !"none".equals(model) && !"pending".equals(model)) {
+                models.add(model);
+            }
+        }
+        return String.join(", ", models);
+    }
+
     private String mermaid(String diagram) {
         return "<pre class=\"mermaid\">\n" + diagram + "</pre>\n";
     }
@@ -1265,6 +1283,7 @@ public final class HtmlRenderer {
                 ul{margin:.3rem 0 .8rem;padding-left:1.3rem}
                 li{margin:.15rem 0}
                 footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);margin-top:2rem}
+                footer .provenance{display:inline-block;margin-top:.35rem;opacity:.85}
                 .sub{color:var(--muted);font-weight:400;font-size:.9rem}
                 h3.feature{color:var(--accent);border-bottom:1px dashed var(--line);padding-bottom:.2rem}
                 .eptype{margin:1.8rem 0 .2rem;font-size:1.05rem;font-weight:700;letter-spacing:.05em;

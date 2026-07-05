@@ -5,6 +5,7 @@ import io.github.ddmfuhrmann.kindexer.enrich.Enricher;
 import io.github.ddmfuhrmann.kindexer.enrich.EnrichmentProvider;
 import io.github.ddmfuhrmann.kindexer.enrich.EnrichmentTask;
 import io.github.ddmfuhrmann.kindexer.enrich.HttpAnthropicProvider;
+import io.github.ddmfuhrmann.kindexer.enrich.HttpOpenAiProvider;
 import io.github.ddmfuhrmann.kindexer.manifest.Manifest;
 import io.github.ddmfuhrmann.kindexer.manifest.Manifest.EnrichmentSection;
 import io.github.ddmfuhrmann.kindexer.pipeline.Pipeline;
@@ -18,7 +19,7 @@ import java.util.function.Function;
 /**
  * Entry point. Three commands:
  * <pre>
- *   run &lt;repo&gt; [--out DIR] [--no-llm | --provider sdk [--model M] [--max-tokens N] [--thinking on] [--effort LVL] [--behaviors-chunk N] [--task-model T=M]...]   one-shot (CI, determinism, sdk)
+ *   run &lt;repo&gt; [--out DIR] [--no-llm | --provider sdk|openai [--model M] [--base-url URL] [--max-tokens N] [--thinking on] [--effort LVL] [--behaviors-chunk N] [--task-model T=M]...]   one-shot (CI, determinism, sdk/openai)
  *   extract &lt;repo&gt; [--out DIR]                                       agent phase 1: emit enrich requests
  *   assemble &lt;repo&gt; [--out DIR]                                      agent phase 2: fold in responses
  * </pre>
@@ -113,17 +114,48 @@ public final class Cli {
             reportSpend(byModel);
             return result;
         }
-        System.err.println("[kindexer] no enrichment provider (use --provider sdk, or the extract/assemble "
+        if ("openai".equals(opt.provider)) {
+            if (!opt.modelSet) {
+                System.err.println("error: --provider openai requires an explicit --model "
+                        + "(e.g. --model llama3.1 for Ollama, or --model gpt-4o-mini for OpenAI)");
+                System.exit(2);
+            }
+            String base = (opt.baseUrl == null || opt.baseUrl.isBlank()) ? "https://api.openai.com/v1" : opt.baseUrl;
+            String modelLabel = opt.taskModels.isEmpty() ? "model " : "default model ";
+            System.err.println("[kindexer] enrichment via OpenAI-compatible API at " + base
+                    + " (" + modelLabel + opt.model + ", max_tokens " + opt.maxTokens + ")");
+            if (opt.thinking || opt.effort != null) {
+                System.err.println("[kindexer] note: --thinking/--effort are Anthropic-specific; for --provider openai use --reasoning-effort");
+            }
+            if (opt.reasoningEffort != null) {
+                System.err.println("[kindexer] reasoning_effort=" + opt.reasoningEffort
+                        + " (use 'none' to disable a thinking model's chain-of-thought so the budget goes to the JSON)");
+            }
+            if (!opt.taskModels.isEmpty()) {
+                System.err.println("[kindexer] per-task model overrides: " + opt.taskModels
+                        + " (tasks not listed use the default model)");
+            }
+            // Resolve a provider per task, caching one HttpOpenAiProvider per distinct model.
+            Map<String, HttpOpenAiProvider> byModel = new HashMap<>();
+            Function<EnrichmentTask, EnrichmentProvider> providerFor = task -> {
+                String model = opt.taskModels.getOrDefault(task.name(), opt.model);
+                return byModel.computeIfAbsent(model, m -> new HttpOpenAiProvider(m, opt.maxTokens, opt.baseUrl, opt.reasoningEffort));
+            };
+            var result = enricher.runWithProvider(det, repo, providerFor, opt.behaviorsChunk);
+            reportSpend(byModel);
+            return result;
+        }
+        System.err.println("[kindexer] no enrichment provider (use --provider sdk|openai, or the extract/assemble "
                 + "agent flow); emitting deterministic layer only");
         return enricher.empty(det);
     }
 
     /** Sum the per-model usage into one run-total spend line (estimated, indicative prices). */
-    private static void reportSpend(Map<String, HttpAnthropicProvider> byModel) {
+    private static void reportSpend(Map<String, ? extends EnrichmentProvider> byModel) {
         long in = 0;
         long out = 0;
         double cost = 0;
-        for (HttpAnthropicProvider p : byModel.values()) {
+        for (EnrichmentProvider p : byModel.values()) {
             in += p.inputTokens();
             out += p.outputTokens();
             cost += p.estimatedCostUsd();
@@ -144,7 +176,7 @@ public final class Cli {
                 knowledge-index — deterministic Spring Boot knowledge extractor + LLM enrichment
 
                 Usage:
-                  run <repo> [--out DIR] [--no-llm | --provider sdk [--model M] [--max-tokens N] [--thinking on] [--effort LVL] [--behaviors-chunk N] [--task-model T=M]...]
+                  run <repo> [--out DIR] [--no-llm | --provider sdk|openai [--model M] [--base-url URL] [--max-tokens N] [--thinking on] [--effort LVL] [--behaviors-chunk N] [--task-model T=M]...]
                   extract <repo> [--out DIR]     emit enrichment requests (agent phase 1)
                   assemble <repo> [--out DIR]    fold in agent responses (agent phase 2)
 
@@ -152,7 +184,15 @@ public final class Cli {
                   --out DIR        output dir (default: <repo>/.knowledge-index/out)
                   --no-llm         deterministic layer only (reproducible; for CI / determinism proof)
                   --provider sdk   enrich via Anthropic API (needs ANTHROPIC_API_KEY)
-                  --model M        model id for --provider sdk (default: %s)
+                  --provider openai  enrich via any OpenAI /v1/chat/completions endpoint (hosted or local);
+                                   key from OPENAI_API_KEY (optional for local), requires --model, e.g.
+                                   --provider openai --base-url http://localhost:11434/v1 --model llama3.1
+                  --base-url URL   endpoint for --provider openai (default: https://api.openai.com/v1)
+                  --reasoning-effort LVL  (--provider openai) OpenAI reasoning_effort: none|low|medium|high.
+                                   Use 'none' on a thinking model (Ollama) so its chain-of-thought
+                                   doesn't burn the output budget and truncate the JSON
+                                   (unset by default — not sent, for endpoints that reject it)
+                  --model M        model id for --provider sdk (default: %s); required for --provider openai
                   --max-tokens N   output token budget per enrichment call (default: %d)
                   --thinking on    enable model reasoning for --provider sdk (default: off);
                                    adaptive for modern models, extended (budget) for Haiku 4.5
@@ -174,6 +214,9 @@ public final class Cli {
         boolean noLlm;
         String provider;
         String model = DEFAULT_MODEL;
+        boolean modelSet; // whether --model was passed explicitly (required for --provider openai)
+        String baseUrl;   // OpenAI-compatible endpoint (e.g. http://localhost:11434/v1 for Ollama)
+        String reasoningEffort; // OpenAI reasoning_effort for --provider openai; "none" disables thinking
         int maxTokens = HttpAnthropicProvider.DEFAULT_MAX_TOKENS;
         boolean thinking = false;
         String effort; // null = model default
@@ -188,7 +231,12 @@ public final class Cli {
                     case "--out" -> o.out = next(args, ++i);
                     case "--no-llm" -> o.noLlm = true;
                     case "--provider" -> o.provider = next(args, ++i);
-                    case "--model" -> o.model = next(args, ++i);
+                    case "--base-url" -> o.baseUrl = next(args, ++i);
+                    case "--reasoning-effort" -> o.reasoningEffort = next(args, ++i);
+                    case "--model" -> {
+                        o.model = next(args, ++i);
+                        o.modelSet = true;
+                    }
                     case "--max-tokens" -> {
                         String v = next(args, ++i);
                         if (v != null) {

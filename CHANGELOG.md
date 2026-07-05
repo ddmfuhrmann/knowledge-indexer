@@ -8,6 +8,33 @@ everything below the foundation is under **Unreleased**.
 ## [Unreleased]
 
 ### Added
+- **OpenAI-compatible provider `--provider openai`** — one `java.net.http` client for any
+  OpenAI `/v1/chat/completions` endpoint, hosted (OpenAI/Groq/OpenRouter/…) **or** local (Ollama,
+  LM Studio, llama.cpp, vLLM), selected by `--base-url` (defaults to `https://api.openai.com/v1`) +
+  `--model` (required). Key from `OPENAI_API_KEY`, **optional** for a local model (no `Authorization`
+  header when unset). Retries mirror the Anthropic path (429/5xx/I·O, exponential backoff honouring
+  `retry-after`); output degrades gracefully via `JsonExtract` + the evidence gate, so a weak/local
+  model shows as a low keep-rate, never a crash. `--thinking`/`--effort` are Anthropic-specific and
+  ignored (a note is logged). Shares the content-addressed cache; the model id is recorded as
+  `openai:<model>`. Validated end-to-end against local Ollama on `order-sample`. (ROADMAP 3)
+- **`--reasoning-effort` for `--provider openai`** — sends OpenAI `reasoning_effort` when set. Crucial
+  for Ollama: a thinking-capable model (gemma/qwen3/gpt-oss/deepseek-r1) reasons by default over the
+  OpenAI endpoint, burning the output budget before the JSON and truncating it to **zero** kept items;
+  `--reasoning-effort none` disables it so the whole budget goes to the JSON. Measured on
+  `gemma4:12b`/`order-sample`: ~7.3K output tokens + truncation → ~3.7K tokens and **12/12** use cases.
+  Unset by default (not sent, so endpoints that reject it still work); `run-ollama.sh` defaults it to
+  `none`. Also: an OpenAI-path request **timeout fails fast** (no retry — slowness won't fix on retry)
+  after 300s, overridable via `KINDEXER_OPENAI_TIMEOUT_S`. (ROADMAP 3)
+- **Ollama/OpenAI model benchmark + tooling** — `scripts/benchmark-ollama.sh` (auto-discovers models
+  from `BASE_URL/models`), `benchmark-ollama-report.py` (keep-rate + quality + wall-time) and
+  `benchmark-compare.py` (unified table vs the Anthropic matrix), plus
+  [docs/ollama_benchmark.md](docs/ollama_benchmark.md) with a 12-model run: `reasoning_effort` is
+  per-model (`none` for gemma, `low` for gpt-oss; `deepseek-r1` untameable), more reasoning doesn't
+  improve quality over Ollama (unlike Anthropic), and output is non-deterministic enough that ±2 on a
+  quality signal is noise. `run-ollama.sh` now defaults `MAX_TOKENS=4096` / `REASONING=none`. (ROADMAP 3)
+- **Enrichment provenance footer** — the self-contained HTML footer now names the model(s) that
+  interpreted the index (`Enriched by <provider:model> · generated <commit-time>`), sorted for
+  determinism and omitted on `--no-llm`. (ROADMAP 3)
 - **Auto-chunked the `behaviors` enrichment for large repos** — the per-endpoint use-case task used to
   send the whole deterministic material in one prompt, which on a big app (~140K tokens) blows the
   token budget and times out non-streaming. It is now split by controller with the **call graph

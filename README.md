@@ -86,9 +86,13 @@ box. Deterministic vs LLM items are badged; evidence is in a tooltip.
   LLM** (no API key). `sdk` = a thin `java.net.http` client for the Anthropic Messages API
   (`ANTHROPIC_API_KEY`) — same prompts, for headless/CI; default model `claude-haiku-4-5`, thinking
   off, `max_tokens` 16000 (`--max-tokens`), model-aware `--thinking`/`--effort`, per-task routing
-  (`--task-model`), and retry-with-backoff on 429/5xx. Both share the cache + evidence validator.
-  See [docs/providers.md](docs/providers.md) for the provider surface and
-  [docs/anthropic_benchmark.md](docs/anthropic_benchmark.md) for the model cost × quality benchmark.
+  (`--task-model`), and retry-with-backoff on 429/5xx. `openai` = one client for **any OpenAI
+  `/v1/chat/completions` endpoint** — hosted (OpenAI, Groq, OpenRouter, …) *and* local runners
+  (Ollama, LM Studio, llama.cpp, vLLM) via `--base-url` + `--model`; key from `OPENAI_API_KEY`
+  (optional for local). All share the cache + evidence validator, so a weak/local model shows up as a
+  low keep-rate, never a crash. See [docs/providers.md](docs/providers.md) for the provider surface
+  and [docs/anthropic_benchmark.md](docs/anthropic_benchmark.md) /
+  [docs/ollama_benchmark.md](docs/ollama_benchmark.md) for the model cost × quality benchmarks.
 - **Canonical JSON** (Jackson, alphabetically sorted keys) for both hashing and on-disk files.
 
 ## Layout
@@ -135,6 +139,11 @@ ANTHROPIC_API_KEY=… $BIN run <repo> --provider sdk --out out/
 #   ...enable/deepen model reasoning (model-aware): --thinking on  /  --effort low..max
 #   ...richer business voice on the use cases (deliverable): --task-model behaviors=claude-sonnet-5 --effort low
 #   ...model × cost × quality trade-offs: docs/anthropic_benchmark.md
+
+# headless enrichment via any OpenAI-compatible endpoint, hosted or local:
+#   local Ollama (no key, no cost):
+$BIN run <repo> --provider openai --base-url http://localhost:11434/v1 --model qwen2.5-coder:7b --out out/
+#   hosted (OpenAI/Groq/OpenRouter): OPENAI_API_KEY=… $BIN run <repo> --provider openai --model gpt-4o-mini --out out/
 
 # prune a nested/vendored project (e.g. when the tool lives inside the target repo):
 $BIN run <repo> --no-llm --exclude .skills --out out/
