@@ -402,9 +402,10 @@
       ]
     },
     "entryPoints" : {
-      "contentHash" : "sha256:28db8aa242067056629a9852368ff9d65d30b46c265402b213c0c687564faf52",
+      "contentHash" : "sha256:b69a95a4dac6be74162d68b1d95b88badaef70664bc06fe2c799341d8f5dd977",
       "data" : [
         {
+          "async" : false,
           "category" : "http",
           "className" : "OrderController",
           "cron" : null,
@@ -417,6 +418,7 @@
           "path" : "/orders/{id}"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OrderController",
           "cron" : null,
@@ -429,6 +431,7 @@
           "path" : "/orders"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OrderController",
           "cron" : null,
@@ -441,6 +444,7 @@
           "path" : "/orders/{id}/cancel"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OrderController",
           "cron" : null,
@@ -453,6 +457,7 @@
           "path" : "/orders/{id}/deliver"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OrderController",
           "cron" : null,
@@ -465,6 +470,7 @@
           "path" : "/orders/{id}/pay"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OrderController",
           "cron" : null,
@@ -477,6 +483,10 @@
           "path" : "/orders/{id}/ship"
         }
       ]
+    },
+    "eventFlows" : {
+      "contentHash" : "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "data" : [ ]
     },
     "exceptionStatuses" : {
       "contentHash" : "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -765,7 +775,7 @@
         }
       ],
       "model" : "agent:claude-code",
-      "sourceHash" : "sha256:2d2fcedce18035fe4cff4483ed6d6a03fccdc242da0aadd11b5dfa682ab5c6a3"
+      "sourceHash" : "sha256:633f1a132e4c8a8cda539ec500fd7bc379d66c3be314db1e370c48cd0f3df654"
     },
     "domains" : {
       "data" : [
@@ -835,9 +845,9 @@
     }
   },
   "project" : {
-    "commit" : "03f3b30069a9675ac2e64fd95bb06555e1c2e37b",
-    "commitMessage" : "docs: worked examples (order-sample, petclinic)\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "generatedAt" : "2026-07-04T21:16:54-03:00",
+    "commit" : "76492bcaf3deb534e92897f9e4d5f57aaf66f3dc",
+    "commitMessage" : "chore(examples): regenerate order-sample\n\nReflects the per-endpoint use-case model and the interactive diagram renderer\n(pan/zoom, expand modal, copy-source).\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+    "generatedAt" : "2026-07-04T23:01:38-03:00",
     "name" : "order-sample"
   }
 }
