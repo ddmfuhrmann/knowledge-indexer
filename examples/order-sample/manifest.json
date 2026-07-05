@@ -1,7 +1,7 @@
 {
   "artifacts" : {
     "callGraph" : {
-      "contentHash" : "sha256:24364cdfa341c42a4600e8900c82a14ea1179e694cb3aa1f92d786f1155d6402",
+      "contentHash" : "sha256:82f62ac3ff4821516b805e7734eed09ad11038fa9642f5585069577db96f6a85",
       "data" : {
         "assignmentSites" : [
           {
@@ -48,98 +48,257 @@
             "line" : 48,
             "method" : "cancel",
             "value" : "CANCELLED"
+          },
+          {
+            "className" : "Shipment",
+            "enumType" : "ShipmentStatus",
+            "field" : "status",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 36,
+            "method" : null,
+            "value" : "PENDING"
+          },
+          {
+            "className" : "Shipment",
+            "enumType" : "ShipmentStatus",
+            "field" : "status",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 41,
+            "method" : "dispatch",
+            "value" : "DISPATCHED"
+          },
+          {
+            "className" : "Shipment",
+            "enumType" : "ShipmentStatus",
+            "field" : "status",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 45,
+            "method" : "markInTransit",
+            "value" : "IN_TRANSIT"
+          },
+          {
+            "className" : "Shipment",
+            "enumType" : "ShipmentStatus",
+            "field" : "status",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 49,
+            "method" : "markDelivered",
+            "value" : "DELIVERED"
+          },
+          {
+            "className" : "Shipment",
+            "enumType" : "ShipmentStatus",
+            "field" : "status",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 53,
+            "method" : "markReturned",
+            "value" : "RETURNED"
           }
         ],
         "edges" : [
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#cancel",
-            "line" : 44,
+            "line" : 50,
             "to" : "com.example.orders.domain.Order#cancel"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#cancel",
-            "line" : 45,
+            "line" : 51,
             "to" : "com.example.orders.repository.OrderRepository#save"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#cancel",
-            "line" : 43,
-            "to" : "com.example.orders.service.OrderService#load"
-          },
-          {
-            "file" : "src/main/java/com/example/orders/service/OrderService.java",
-            "from" : "com.example.orders.service.OrderService#deliver",
-            "line" : 38,
-            "to" : "com.example.orders.domain.Order#markDelivered"
-          },
-          {
-            "file" : "src/main/java/com/example/orders/service/OrderService.java",
-            "from" : "com.example.orders.service.OrderService#deliver",
-            "line" : 39,
-            "to" : "com.example.orders.repository.OrderRepository#save"
-          },
-          {
-            "file" : "src/main/java/com/example/orders/service/OrderService.java",
-            "from" : "com.example.orders.service.OrderService#deliver",
-            "line" : 37,
-            "to" : "com.example.orders.service.OrderService#load"
-          },
-          {
-            "file" : "src/main/java/com/example/orders/service/OrderService.java",
-            "from" : "com.example.orders.service.OrderService#find",
             "line" : 49,
             "to" : "com.example.orders.service.OrderService#load"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
+            "from" : "com.example.orders.service.OrderService#deliver",
+            "line" : 44,
+            "to" : "com.example.orders.domain.Order#markDelivered"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/OrderService.java",
+            "from" : "com.example.orders.service.OrderService#deliver",
+            "line" : 45,
+            "to" : "com.example.orders.repository.OrderRepository#save"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/OrderService.java",
+            "from" : "com.example.orders.service.OrderService#deliver",
+            "line" : 43,
+            "to" : "com.example.orders.service.OrderService#load"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/OrderService.java",
+            "from" : "com.example.orders.service.OrderService#find",
+            "line" : 55,
+            "to" : "com.example.orders.service.OrderService#load"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#load",
-            "line" : 53,
+            "line" : 59,
             "to" : "com.example.orders.repository.OrderRepository#findById"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#pay",
-            "line" : 26,
+            "line" : 32,
+            "to" : "com.example.orders.domain.Order#getId"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/OrderService.java",
+            "from" : "com.example.orders.service.OrderService#pay",
+            "line" : 30,
             "to" : "com.example.orders.domain.Order#markPaid"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#pay",
-            "line" : 27,
+            "line" : 31,
             "to" : "com.example.orders.repository.OrderRepository#save"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#pay",
-            "line" : 25,
+            "line" : 29,
             "to" : "com.example.orders.service.OrderService#load"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
+            "from" : "com.example.orders.service.OrderService#pay",
+            "line" : 32,
+            "to" : "external:ApplicationEventPublisher#publishEvent"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#place",
-            "line" : 21,
+            "line" : 25,
             "to" : "com.example.orders.repository.OrderRepository#save"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#ship",
-            "line" : 32,
+            "line" : 38,
             "to" : "com.example.orders.domain.Order#markShipped"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#ship",
-            "line" : 33,
+            "line" : 39,
             "to" : "com.example.orders.repository.OrderRepository#save"
           },
           {
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "from" : "com.example.orders.service.OrderService#ship",
-            "line" : 31,
+            "line" : 37,
             "to" : "com.example.orders.service.OrderService#load"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#deliver",
+            "line" : 45,
+            "to" : "com.example.orders.domain.Shipment#markDelivered"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#deliver",
+            "line" : 46,
+            "to" : "com.example.orders.repository.ShipmentRepository#save"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#deliver",
+            "line" : 44,
+            "to" : "com.example.orders.service.ShipmentService#load"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#dispatch",
+            "line" : 33,
+            "to" : "com.example.orders.domain.Shipment#dispatch"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#dispatch",
+            "line" : 34,
+            "to" : "com.example.orders.repository.ShipmentRepository#save"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#dispatch",
+            "line" : 32,
+            "to" : "com.example.orders.service.ShipmentService#load"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#find",
+            "line" : 56,
+            "to" : "com.example.orders.service.ShipmentService#load"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#load",
+            "line" : 60,
+            "to" : "com.example.orders.repository.ShipmentRepository#findById"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#markInTransit",
+            "line" : 39,
+            "to" : "com.example.orders.domain.Shipment#markInTransit"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#markInTransit",
+            "line" : 40,
+            "to" : "com.example.orders.repository.ShipmentRepository#save"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#markInTransit",
+            "line" : 38,
+            "to" : "com.example.orders.service.ShipmentService#load"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#onOrderPaid",
+            "line" : 26,
+            "to" : "com.example.orders.event.OrderPaidEvent#getOrderId"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#onOrderPaid",
+            "line" : 26,
+            "to" : "com.example.orders.repository.OrderRepository#findById"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#onOrderPaid",
+            "line" : 28,
+            "to" : "com.example.orders.repository.ShipmentRepository#save"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#ret",
+            "line" : 51,
+            "to" : "com.example.orders.domain.Shipment#markReturned"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#ret",
+            "line" : 52,
+            "to" : "com.example.orders.repository.ShipmentRepository#save"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "from" : "com.example.orders.service.ShipmentService#ret",
+            "line" : 50,
+            "to" : "com.example.orders.service.ShipmentService#load"
           },
           {
             "file" : "src/main/java/com/example/orders/web/OrderController.java",
@@ -176,6 +335,36 @@
             "from" : "com.example.orders.web.OrderController#ship",
             "line" : 36,
             "to" : "com.example.orders.service.OrderService#ship"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "from" : "com.example.orders.web.ShipmentController#deliver",
+            "line" : 35,
+            "to" : "com.example.orders.service.ShipmentService#deliver"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "from" : "com.example.orders.web.ShipmentController#dispatch",
+            "line" : 25,
+            "to" : "com.example.orders.service.ShipmentService#dispatch"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "from" : "com.example.orders.web.ShipmentController#find",
+            "line" : 45,
+            "to" : "com.example.orders.service.ShipmentService#find"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "from" : "com.example.orders.web.ShipmentController#markInTransit",
+            "line" : 30,
+            "to" : "com.example.orders.service.ShipmentService#markInTransit"
+          },
+          {
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "from" : "com.example.orders.web.ShipmentController#ret",
+            "line" : 40,
+            "to" : "com.example.orders.service.ShipmentService#ret"
           }
         ],
         "nodes" : [
@@ -186,6 +375,15 @@
             "line" : 47,
             "method" : "cancel",
             "returnType" : "void",
+            "role" : "domain"
+          },
+          {
+            "className" : "Order",
+            "file" : "src/main/java/com/example/orders/domain/Order.java",
+            "id" : "com.example.orders.domain.Order#getId",
+            "line" : 51,
+            "method" : "getId",
+            "returnType" : "Long",
             "role" : "domain"
           },
           {
@@ -216,6 +414,51 @@
             "role" : "domain"
           },
           {
+            "className" : "Shipment",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "id" : "com.example.orders.domain.Shipment#dispatch",
+            "line" : 39,
+            "method" : "dispatch",
+            "returnType" : "void",
+            "role" : "domain"
+          },
+          {
+            "className" : "Shipment",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "id" : "com.example.orders.domain.Shipment#markDelivered",
+            "line" : 48,
+            "method" : "markDelivered",
+            "returnType" : "void",
+            "role" : "domain"
+          },
+          {
+            "className" : "Shipment",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "id" : "com.example.orders.domain.Shipment#markInTransit",
+            "line" : 44,
+            "method" : "markInTransit",
+            "returnType" : "void",
+            "role" : "domain"
+          },
+          {
+            "className" : "Shipment",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "id" : "com.example.orders.domain.Shipment#markReturned",
+            "line" : 52,
+            "method" : "markReturned",
+            "returnType" : "void",
+            "role" : "domain"
+          },
+          {
+            "className" : "OrderPaidEvent",
+            "file" : "src/main/java/com/example/orders/event/OrderPaidEvent.java",
+            "id" : "com.example.orders.event.OrderPaidEvent#getOrderId",
+            "line" : 16,
+            "method" : "getOrderId",
+            "returnType" : "Long",
+            "role" : "other"
+          },
+          {
             "className" : "OrderRepository",
             "file" : "src/main/java/com/example/orders/repository/OrderRepository.java",
             "id" : "com.example.orders.repository.OrderRepository#findById",
@@ -234,10 +477,28 @@
             "role" : "repository"
           },
           {
+            "className" : "ShipmentRepository",
+            "file" : "src/main/java/com/example/orders/repository/ShipmentRepository.java",
+            "id" : "com.example.orders.repository.ShipmentRepository#findById",
+            "line" : 16,
+            "method" : "findById",
+            "returnType" : "Optional<Shipment>",
+            "role" : "repository"
+          },
+          {
+            "className" : "ShipmentRepository",
+            "file" : "src/main/java/com/example/orders/repository/ShipmentRepository.java",
+            "id" : "com.example.orders.repository.ShipmentRepository#save",
+            "line" : 14,
+            "method" : "save",
+            "returnType" : "Shipment",
+            "role" : "repository"
+          },
+          {
             "className" : "OrderService",
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "id" : "com.example.orders.service.OrderService#cancel",
-            "line" : 42,
+            "line" : 48,
             "method" : "cancel",
             "returnType" : "Order",
             "role" : "service"
@@ -246,7 +507,7 @@
             "className" : "OrderService",
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "id" : "com.example.orders.service.OrderService#deliver",
-            "line" : 36,
+            "line" : 42,
             "method" : "deliver",
             "returnType" : "Order",
             "role" : "service"
@@ -255,7 +516,7 @@
             "className" : "OrderService",
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "id" : "com.example.orders.service.OrderService#find",
-            "line" : 48,
+            "line" : 54,
             "method" : "find",
             "returnType" : "Order",
             "role" : "service"
@@ -264,7 +525,7 @@
             "className" : "OrderService",
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "id" : "com.example.orders.service.OrderService#load",
-            "line" : 52,
+            "line" : 58,
             "method" : "load",
             "returnType" : "Order",
             "role" : "service"
@@ -273,7 +534,7 @@
             "className" : "OrderService",
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "id" : "com.example.orders.service.OrderService#pay",
-            "line" : 24,
+            "line" : 28,
             "method" : "pay",
             "returnType" : "Order",
             "role" : "service"
@@ -282,7 +543,7 @@
             "className" : "OrderService",
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "id" : "com.example.orders.service.OrderService#place",
-            "line" : 19,
+            "line" : 23,
             "method" : "place",
             "returnType" : "Order",
             "role" : "service"
@@ -291,9 +552,72 @@
             "className" : "OrderService",
             "file" : "src/main/java/com/example/orders/service/OrderService.java",
             "id" : "com.example.orders.service.OrderService#ship",
-            "line" : 30,
+            "line" : 36,
             "method" : "ship",
             "returnType" : "Order",
+            "role" : "service"
+          },
+          {
+            "className" : "ShipmentService",
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "id" : "com.example.orders.service.ShipmentService#deliver",
+            "line" : 43,
+            "method" : "deliver",
+            "returnType" : "Shipment",
+            "role" : "service"
+          },
+          {
+            "className" : "ShipmentService",
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "id" : "com.example.orders.service.ShipmentService#dispatch",
+            "line" : 31,
+            "method" : "dispatch",
+            "returnType" : "Shipment",
+            "role" : "service"
+          },
+          {
+            "className" : "ShipmentService",
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "id" : "com.example.orders.service.ShipmentService#find",
+            "line" : 55,
+            "method" : "find",
+            "returnType" : "Shipment",
+            "role" : "service"
+          },
+          {
+            "className" : "ShipmentService",
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "id" : "com.example.orders.service.ShipmentService#load",
+            "line" : 59,
+            "method" : "load",
+            "returnType" : "Shipment",
+            "role" : "service"
+          },
+          {
+            "className" : "ShipmentService",
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "id" : "com.example.orders.service.ShipmentService#markInTransit",
+            "line" : 37,
+            "method" : "markInTransit",
+            "returnType" : "Shipment",
+            "role" : "service"
+          },
+          {
+            "className" : "ShipmentService",
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "id" : "com.example.orders.service.ShipmentService#onOrderPaid",
+            "line" : 24,
+            "method" : "onOrderPaid",
+            "returnType" : "Shipment",
+            "role" : "service"
+          },
+          {
+            "className" : "ShipmentService",
+            "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+            "id" : "com.example.orders.service.ShipmentService#ret",
+            "line" : 49,
+            "method" : "ret",
+            "returnType" : "Shipment",
             "role" : "service"
           },
           {
@@ -349,12 +673,66 @@
             "method" : "ship",
             "returnType" : "Order",
             "role" : "controller"
+          },
+          {
+            "className" : "ShipmentController",
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "id" : "com.example.orders.web.ShipmentController#deliver",
+            "line" : 33,
+            "method" : "deliver",
+            "returnType" : "Shipment",
+            "role" : "controller"
+          },
+          {
+            "className" : "ShipmentController",
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "id" : "com.example.orders.web.ShipmentController#dispatch",
+            "line" : 23,
+            "method" : "dispatch",
+            "returnType" : "Shipment",
+            "role" : "controller"
+          },
+          {
+            "className" : "ShipmentController",
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "id" : "com.example.orders.web.ShipmentController#find",
+            "line" : 43,
+            "method" : "find",
+            "returnType" : "Shipment",
+            "role" : "controller"
+          },
+          {
+            "className" : "ShipmentController",
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "id" : "com.example.orders.web.ShipmentController#markInTransit",
+            "line" : 28,
+            "method" : "markInTransit",
+            "returnType" : "Shipment",
+            "role" : "controller"
+          },
+          {
+            "className" : "ShipmentController",
+            "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+            "id" : "com.example.orders.web.ShipmentController#ret",
+            "line" : 38,
+            "method" : "ret",
+            "returnType" : "Shipment",
+            "role" : "controller"
+          },
+          {
+            "className" : "ApplicationEventPublisher",
+            "file" : "",
+            "id" : "external:ApplicationEventPublisher#publishEvent",
+            "line" : 0,
+            "method" : "publishEvent",
+            "returnType" : "",
+            "role" : "external"
           }
         ]
       }
     },
     "entities" : {
-      "contentHash" : "sha256:7253dd5692e877ef1616ade4e508be9ac6e959aa0a6a38670b41e32b682ea5dc",
+      "contentHash" : "sha256:e221d8bb96e148a2ab27e211eca8e2c4739497ceecd45ea545b7fdab6e37661f",
       "data" : [
         {
           "fields" : [
@@ -398,12 +776,77 @@
           "name" : "Order",
           "relations" : [ ],
           "table" : "Order"
+        },
+        {
+          "fields" : [
+            {
+              "column" : null,
+              "enumConverter" : null,
+              "generated" : false,
+              "id" : false,
+              "length" : 40,
+              "name" : "carrier",
+              "nullable" : null,
+              "type" : "String",
+              "unique" : null
+            },
+            {
+              "column" : null,
+              "enumConverter" : null,
+              "generated" : true,
+              "id" : true,
+              "length" : null,
+              "name" : "id",
+              "nullable" : null,
+              "type" : "Long",
+              "unique" : null
+            },
+            {
+              "column" : null,
+              "enumConverter" : null,
+              "generated" : false,
+              "id" : false,
+              "length" : 20,
+              "name" : "status",
+              "nullable" : false,
+              "type" : "ShipmentStatus",
+              "unique" : null
+            }
+          ],
+          "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+          "kind" : "ENTITY",
+          "line" : 13,
+          "name" : "Shipment",
+          "relations" : [
+            {
+              "field" : "order",
+              "joinColumn" : null,
+              "kind" : "ManyToOne",
+              "mappedBy" : null,
+              "owning" : true,
+              "target" : "Order"
+            }
+          ],
+          "table" : "Shipment"
         }
       ]
     },
     "entryPoints" : {
-      "contentHash" : "sha256:b69a95a4dac6be74162d68b1d95b88badaef70664bc06fe2c799341d8f5dd977",
+      "contentHash" : "sha256:cd10771f26538b9166a4d73dce13c42e910356bc4bd3e67f96d366433e785ae4",
       "data" : [
+        {
+          "async" : false,
+          "category" : "event",
+          "className" : "ShipmentService",
+          "cron" : null,
+          "destination" : "OrderPaidEvent",
+          "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+          "httpMethod" : null,
+          "id" : "event:com.example.orders.service.ShipmentService#onOrderPaid(OrderPaidEvent)",
+          "line" : 24,
+          "method" : "onOrderPaid",
+          "path" : null
+        },
         {
           "async" : false,
           "category" : "http",
@@ -416,6 +859,19 @@
           "line" : 49,
           "method" : "find",
           "path" : "/orders/{id}"
+        },
+        {
+          "async" : false,
+          "category" : "http",
+          "className" : "ShipmentController",
+          "cron" : null,
+          "destination" : null,
+          "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+          "httpMethod" : "GET",
+          "id" : "http:GET /shipments/{id}",
+          "line" : 43,
+          "method" : "find",
+          "path" : "/shipments/{id}"
         },
         {
           "async" : false,
@@ -481,12 +937,86 @@
           "line" : 34,
           "method" : "ship",
           "path" : "/orders/{id}/ship"
+        },
+        {
+          "async" : false,
+          "category" : "http",
+          "className" : "ShipmentController",
+          "cron" : null,
+          "destination" : null,
+          "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+          "httpMethod" : "POST",
+          "id" : "http:POST /shipments/{id}/deliver",
+          "line" : 33,
+          "method" : "deliver",
+          "path" : "/shipments/{id}/deliver"
+        },
+        {
+          "async" : false,
+          "category" : "http",
+          "className" : "ShipmentController",
+          "cron" : null,
+          "destination" : null,
+          "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+          "httpMethod" : "POST",
+          "id" : "http:POST /shipments/{id}/dispatch",
+          "line" : 23,
+          "method" : "dispatch",
+          "path" : "/shipments/{id}/dispatch"
+        },
+        {
+          "async" : false,
+          "category" : "http",
+          "className" : "ShipmentController",
+          "cron" : null,
+          "destination" : null,
+          "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+          "httpMethod" : "POST",
+          "id" : "http:POST /shipments/{id}/in-transit",
+          "line" : 28,
+          "method" : "markInTransit",
+          "path" : "/shipments/{id}/in-transit"
+        },
+        {
+          "async" : false,
+          "category" : "http",
+          "className" : "ShipmentController",
+          "cron" : null,
+          "destination" : null,
+          "file" : "src/main/java/com/example/orders/web/ShipmentController.java",
+          "httpMethod" : "POST",
+          "id" : "http:POST /shipments/{id}/return",
+          "line" : 38,
+          "method" : "ret",
+          "path" : "/shipments/{id}/return"
         }
       ]
     },
     "eventFlows" : {
-      "contentHash" : "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-      "data" : [ ]
+      "contentHash" : "sha256:82775353d65196af6e9a4965c36fd1d67a99f7038c194f2409fac27d8c9105f1",
+      "data" : [
+        {
+          "consumers" : [
+            {
+              "async" : false,
+              "className" : "ShipmentService",
+              "file" : "src/main/java/com/example/orders/service/ShipmentService.java",
+              "line" : 24,
+              "method" : "onOrderPaid"
+            }
+          ],
+          "event" : "OrderPaidEvent",
+          "producers" : [
+            {
+              "async" : false,
+              "className" : "OrderService",
+              "file" : "src/main/java/com/example/orders/service/OrderService.java",
+              "line" : 32,
+              "method" : "pay"
+            }
+          ]
+        }
+      ]
     },
     "exceptionStatuses" : {
       "contentHash" : "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -505,7 +1035,7 @@
       "data" : [ ]
     },
     "stateMachines" : {
-      "contentHash" : "sha256:cd7dfe408ea7624cc1e7731120ed697575c39cecda538f15d6e015cd586f6deb",
+      "contentHash" : "sha256:cd608a88853eb7eddbcdc461b5dc06e2c90b4c7ae7409f116a852a0a5a7a9dee",
       "data" : [
         {
           "assignmentSites" : [
@@ -565,11 +1095,70 @@
             "PAID",
             "SHIPPED"
           ]
+        },
+        {
+          "assignmentSites" : [
+            {
+              "className" : "Shipment",
+              "enumType" : "ShipmentStatus",
+              "field" : "status",
+              "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+              "line" : 36,
+              "method" : null,
+              "value" : "PENDING"
+            },
+            {
+              "className" : "Shipment",
+              "enumType" : "ShipmentStatus",
+              "field" : "status",
+              "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+              "line" : 41,
+              "method" : "dispatch",
+              "value" : "DISPATCHED"
+            },
+            {
+              "className" : "Shipment",
+              "enumType" : "ShipmentStatus",
+              "field" : "status",
+              "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+              "line" : 45,
+              "method" : "markInTransit",
+              "value" : "IN_TRANSIT"
+            },
+            {
+              "className" : "Shipment",
+              "enumType" : "ShipmentStatus",
+              "field" : "status",
+              "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+              "line" : 49,
+              "method" : "markDelivered",
+              "value" : "DELIVERED"
+            },
+            {
+              "className" : "Shipment",
+              "enumType" : "ShipmentStatus",
+              "field" : "status",
+              "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+              "line" : 53,
+              "method" : "markReturned",
+              "value" : "RETURNED"
+            }
+          ],
+          "enumType" : "ShipmentStatus",
+          "file" : "src/main/java/com/example/orders/domain/ShipmentStatus.java",
+          "line" : 4,
+          "states" : [
+            "DELIVERED",
+            "DISPATCHED",
+            "IN_TRANSIT",
+            "PENDING",
+            "RETURNED"
+          ]
         }
       ]
     },
     "testScenarios" : {
-      "contentHash" : "sha256:d190289675769396f12ba60bbcad5daf6ef1cb404330f90c6880c1a77bb94bd9",
+      "contentHash" : "sha256:024fbc0fb4576e9317c22756207f59d6489a015f493fcec6c2b4536fec7c38b6",
       "data" : [
         {
           "file" : "src/test/java/com/example/orders/service/OrderServiceTest.java",
@@ -602,6 +1191,26 @@
           "targetCertain" : true,
           "targetClass" : "OrderService",
           "testClass" : "OrderServiceTest"
+        },
+        {
+          "file" : "src/test/java/com/example/orders/service/ShipmentServiceTest.java",
+          "scenarios" : [
+            {
+              "description" : "paying an order opens a shipment in PENDING",
+              "displayName" : "paying an order opens a shipment in PENDING",
+              "line" : 13,
+              "method" : "onOrderPaid_opensPendingShipment"
+            },
+            {
+              "description" : "dispatch moves shipment to dispatched",
+              "displayName" : null,
+              "line" : 18,
+              "method" : "dispatch_movesShipmentToDispatched"
+            }
+          ],
+          "targetCertain" : true,
+          "targetClass" : "ShipmentService",
+          "testClass" : "ShipmentServiceTest"
         }
       ]
     },
@@ -645,7 +1254,7 @@
           "scenario" : "Payment is confirmed for an order",
           "given" : "an order in NEW status",
           "when" : "payment is received",
-          "then" : "the order moves to PAID",
+          "then" : "the order moves to PAID and an OrderPaidEvent is raised to start fulfilment",
           "type" : "lifecycle",
           "priority" : "critical",
           "verifiedBy" : [
@@ -653,70 +1262,20 @@
           ],
           "gap" : false,
           "coverage" : {
-            "level" : "full",
-            "untested" : [ ]
+            "level" : "partial",
+            "untested" : [
+              "no test asserts the OrderPaidEvent is published"
+            ]
           },
           "evidence" : {
             "entryPoint" : "http:POST /orders/{id}/pay",
             "nodes" : [
-              "com.example.orders.domain.Order#markPaid"
+              "com.example.orders.service.OrderService#pay",
+              "com.example.orders.domain.Order#markPaid",
+              "external:ApplicationEventPublisher#publishEvent"
             ],
             "assignmentSites" : [
               "src/main/java/com/example/orders/domain/Order.java:36"
-            ],
-            "covers" : [ ]
-          }
-        },
-        {
-          "feature" : "Fulfilment",
-          "scenario" : "A paid order is shipped",
-          "given" : "an order in PAID status",
-          "when" : "the order is dispatched",
-          "then" : "the order moves to SHIPPED",
-          "type" : "lifecycle",
-          "priority" : "high",
-          "verifiedBy" : [
-            "OrderServiceTest#ship_movesPaidOrderToShipped"
-          ],
-          "gap" : false,
-          "coverage" : {
-            "level" : "full",
-            "untested" : [ ]
-          },
-          "evidence" : {
-            "entryPoint" : "http:POST /orders/{id}/ship",
-            "nodes" : [
-              "com.example.orders.domain.Order#markShipped"
-            ],
-            "assignmentSites" : [
-              "src/main/java/com/example/orders/domain/Order.java:40"
-            ],
-            "covers" : [ ]
-          }
-        },
-        {
-          "feature" : "Fulfilment",
-          "scenario" : "A shipped order is delivered",
-          "given" : "an order in SHIPPED status",
-          "when" : "delivery is confirmed",
-          "then" : "the order moves to DELIVERED",
-          "type" : "lifecycle",
-          "priority" : "high",
-          "verifiedBy" : [ ],
-          "gap" : true,
-          "coverage" : {
-            "level" : "thin",
-            "untested" : [
-              "the SHIPPED → DELIVERED transition has no test"
-            ]
-          },
-          "evidence" : {
-            "entryPoint" : "http:POST /orders/{id}/deliver",
-            "nodes" : [
-              "com.example.orders.domain.Order#markDelivered"
-            ],
-            "assignmentSites" : [
-              "src/main/java/com/example/orders/domain/Order.java:44"
             ],
             "covers" : [ ]
           }
@@ -740,6 +1299,7 @@
           "evidence" : {
             "entryPoint" : "http:POST /orders/{id}/cancel",
             "nodes" : [
+              "com.example.orders.service.OrderService#cancel",
               "com.example.orders.domain.Order#cancel"
             ],
             "assignmentSites" : [
@@ -772,10 +1332,232 @@
             "assignmentSites" : [ ],
             "covers" : [ ]
           }
+        },
+        {
+          "feature" : "Order Fulfilment",
+          "scenario" : "A paid order is marked shipped",
+          "given" : "an order in PAID status",
+          "when" : "the order is dispatched",
+          "then" : "the order moves to SHIPPED",
+          "type" : "lifecycle",
+          "priority" : "high",
+          "verifiedBy" : [
+            "OrderServiceTest#ship_movesPaidOrderToShipped"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "full",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:POST /orders/{id}/ship",
+            "nodes" : [
+              "com.example.orders.service.OrderService#ship",
+              "com.example.orders.domain.Order#markShipped"
+            ],
+            "assignmentSites" : [
+              "src/main/java/com/example/orders/domain/Order.java:40"
+            ],
+            "covers" : [ ]
+          }
+        },
+        {
+          "feature" : "Order Fulfilment",
+          "scenario" : "A shipped order is marked delivered",
+          "given" : "an order in SHIPPED status",
+          "when" : "delivery is confirmed",
+          "then" : "the order moves to DELIVERED",
+          "type" : "lifecycle",
+          "priority" : "high",
+          "verifiedBy" : [ ],
+          "gap" : true,
+          "coverage" : {
+            "level" : "thin",
+            "untested" : [
+              "the order SHIPPED → DELIVERED transition has no test"
+            ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:POST /orders/{id}/deliver",
+            "nodes" : [
+              "com.example.orders.service.OrderService#deliver",
+              "com.example.orders.domain.Order#markDelivered"
+            ],
+            "assignmentSites" : [
+              "src/main/java/com/example/orders/domain/Order.java:44"
+            ],
+            "covers" : [ ]
+          }
+        },
+        {
+          "feature" : "Shipping",
+          "scenario" : "Paying an order opens a shipment",
+          "given" : "an order that has just been paid",
+          "when" : "the OrderPaidEvent is handled",
+          "then" : "a shipment is created in PENDING for that order",
+          "type" : "lifecycle",
+          "priority" : "critical",
+          "verifiedBy" : [
+            "ShipmentServiceTest#onOrderPaid_opensPendingShipment"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "full",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "event:com.example.orders.service.ShipmentService#onOrderPaid(OrderPaidEvent)",
+            "nodes" : [
+              "com.example.orders.service.ShipmentService#onOrderPaid",
+              "com.example.orders.repository.OrderRepository#findById",
+              "com.example.orders.repository.ShipmentRepository#save"
+            ],
+            "assignmentSites" : [
+              "src/main/java/com/example/orders/domain/Shipment.java:36"
+            ],
+            "covers" : [ ]
+          }
+        },
+        {
+          "feature" : "Shipping",
+          "scenario" : "A shipment is handed to the carrier",
+          "given" : "a shipment in PENDING status",
+          "when" : "it is dispatched with a carrier",
+          "then" : "the shipment moves to DISPATCHED",
+          "type" : "lifecycle",
+          "priority" : "high",
+          "verifiedBy" : [
+            "ShipmentServiceTest#dispatch_movesShipmentToDispatched"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "full",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:POST /shipments/{id}/dispatch",
+            "nodes" : [
+              "com.example.orders.service.ShipmentService#dispatch",
+              "com.example.orders.domain.Shipment#dispatch"
+            ],
+            "assignmentSites" : [
+              "src/main/java/com/example/orders/domain/Shipment.java:41"
+            ],
+            "covers" : [ ]
+          }
+        },
+        {
+          "feature" : "Shipping",
+          "scenario" : "A dispatched shipment goes in transit",
+          "given" : "a shipment in DISPATCHED status",
+          "when" : "the carrier reports it moving",
+          "then" : "the shipment moves to IN_TRANSIT",
+          "type" : "lifecycle",
+          "priority" : "medium",
+          "verifiedBy" : [ ],
+          "gap" : true,
+          "coverage" : {
+            "level" : "thin",
+            "untested" : [
+              "the DISPATCHED → IN_TRANSIT transition has no test"
+            ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:POST /shipments/{id}/in-transit",
+            "nodes" : [
+              "com.example.orders.service.ShipmentService#markInTransit",
+              "com.example.orders.domain.Shipment#markInTransit"
+            ],
+            "assignmentSites" : [
+              "src/main/java/com/example/orders/domain/Shipment.java:45"
+            ],
+            "covers" : [ ]
+          }
+        },
+        {
+          "feature" : "Shipping",
+          "scenario" : "A shipment is delivered",
+          "given" : "a shipment in IN_TRANSIT status",
+          "when" : "delivery is confirmed",
+          "then" : "the shipment moves to DELIVERED",
+          "type" : "lifecycle",
+          "priority" : "high",
+          "verifiedBy" : [ ],
+          "gap" : true,
+          "coverage" : {
+            "level" : "thin",
+            "untested" : [
+              "the shipment IN_TRANSIT → DELIVERED transition has no test"
+            ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:POST /shipments/{id}/deliver",
+            "nodes" : [
+              "com.example.orders.service.ShipmentService#deliver",
+              "com.example.orders.domain.Shipment#markDelivered"
+            ],
+            "assignmentSites" : [
+              "src/main/java/com/example/orders/domain/Shipment.java:49"
+            ],
+            "covers" : [ ]
+          }
+        },
+        {
+          "feature" : "Shipping",
+          "scenario" : "A shipment is returned",
+          "given" : "a shipment in transit",
+          "when" : "it is sent back",
+          "then" : "the shipment moves to RETURNED",
+          "type" : "edge-case",
+          "priority" : "medium",
+          "verifiedBy" : [ ],
+          "gap" : true,
+          "coverage" : {
+            "level" : "thin",
+            "untested" : [
+              "the return path has no test"
+            ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:POST /shipments/{id}/return",
+            "nodes" : [
+              "com.example.orders.service.ShipmentService#ret",
+              "com.example.orders.domain.Shipment#markReturned"
+            ],
+            "assignmentSites" : [
+              "src/main/java/com/example/orders/domain/Shipment.java:53"
+            ],
+            "covers" : [ ]
+          }
+        },
+        {
+          "feature" : "Shipping",
+          "scenario" : "Someone looks up a shipment by id",
+          "given" : "an existing shipment id",
+          "when" : "the shipment is requested",
+          "then" : "the shipment is returned without changing its state",
+          "type" : "happy-path",
+          "priority" : "medium",
+          "verifiedBy" : [ ],
+          "gap" : true,
+          "coverage" : {
+            "level" : "thin",
+            "untested" : [
+              "the shipment lookup-by-id read has no test"
+            ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:GET /shipments/{id}",
+            "nodes" : [
+              "com.example.orders.service.ShipmentService#find"
+            ],
+            "assignmentSites" : [ ],
+            "covers" : [ ]
+          }
         }
       ],
       "model" : "agent:claude-code",
-      "sourceHash" : "sha256:633f1a132e4c8a8cda539ec500fd7bc379d66c3be314db1e370c48cd0f3df654"
+      "sourceHash" : "sha256:9ab71f381e7a5ff77485e832412f206300774f933d387bb8e626fa3df2da2449"
     },
     "domains" : {
       "data" : [
@@ -787,11 +1569,22 @@
             "OrderService",
             "OrderRepository"
           ],
-          "rationale" : "The full ordering vertical: HTTP surface, application service, the aggregate and its persistence."
+          "rationale" : "The ordering vertical: HTTP surface, application service, the aggregate and its persistence."
+        },
+        {
+          "domain" : "Shipping & Fulfilment",
+          "members" : [
+            "Shipment",
+            "ShipmentController",
+            "ShipmentService",
+            "ShipmentRepository",
+            "OrderPaidEvent"
+          ],
+          "rationale" : "Fulfilment vertical: a paid order raises OrderPaidEvent, which opens a Shipment that is then driven to delivery."
         }
       ],
       "model" : "agent:claude-code",
-      "sourceHash" : "sha256:24153d0865a3fc7ba045da6782f9b1748e1a4cb29abbc391cd6e9307e3c9958d"
+      "sourceHash" : "sha256:8dcd9039f36eddd11bc76adcb816154476492bfc3eae1b84cdc9b22a16f4a56f"
     },
     "stateTransitions" : {
       "data" : [
@@ -838,16 +1631,60 @@
             "file" : "src/main/java/com/example/orders/domain/Order.java",
             "line" : 48
           }
+        },
+        {
+          "from" : "PENDING",
+          "to" : "DISPATCHED",
+          "trigger" : "handed to carrier (dispatch)",
+          "evidence" : {
+            "class" : "Shipment",
+            "method" : "dispatch",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 41
+          }
+        },
+        {
+          "from" : "DISPATCHED",
+          "to" : "IN_TRANSIT",
+          "trigger" : "in transit to customer (markInTransit)",
+          "evidence" : {
+            "class" : "Shipment",
+            "method" : "markInTransit",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 45
+          }
+        },
+        {
+          "from" : "IN_TRANSIT",
+          "to" : "DELIVERED",
+          "trigger" : "delivery confirmed (markDelivered)",
+          "evidence" : {
+            "class" : "Shipment",
+            "method" : "markDelivered",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 49
+          }
+        },
+        {
+          "from" : "IN_TRANSIT",
+          "to" : "RETURNED",
+          "trigger" : "shipment returned (markReturned)",
+          "evidence" : {
+            "class" : "Shipment",
+            "method" : "markReturned",
+            "file" : "src/main/java/com/example/orders/domain/Shipment.java",
+            "line" : 53
+          }
         }
       ],
       "model" : "agent:claude-code",
-      "sourceHash" : "sha256:cd7dfe408ea7624cc1e7731120ed697575c39cecda538f15d6e015cd586f6deb"
+      "sourceHash" : "sha256:cd608a88853eb7eddbcdc461b5dc06e2c90b4c7ae7409f116a852a0a5a7a9dee"
     }
   },
   "project" : {
-    "commit" : "6fd06d07d93269f436192e385174c52c549d2da9",
-    "commitMessage" : "chore(examples): regenerate order-sample\n\nPicks up event-flow support, the choreography section, category/feature grouping and\nthe per-feature count.\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "generatedAt" : "2026-07-04T23:43:39-03:00",
+    "commit" : "bac9b85870387d85f09a20fead3e6a417aea3fbd",
+    "commitMessage" : "feat(order-sample): two-entity index with event choreography\n\nEnrich the order-sample fixture so the published example exercises more of\nthe indexer than a single state machine:\n\n- Add a Shipment entity (@ManyToOne → Order) with its own ShipmentStatus\n  state machine (PENDING → DISPATCHED → IN_TRANSIT → DELIVERED / RETURNED).\n- Add an OrderPaidEvent choreography: OrderService.pay publishes it and\n  ShipmentService consumes it via @EventListener, opening a shipment —\n  producing a producer → event → consumer flow and an event entry point.\n- Add ShipmentController (five endpoints) + repository, and a deliberately\n  partial test so coverage gaps still surface.\n\nThe example now renders a two-entity ER diagram, two state machines, an\nevent-driven flow and one use case per endpoint.\n\nAlso publish the self-contained order-sample HTML to GitHub Pages via\n.github/workflows/pages.yml, and update README / CHANGELOG / ROADMAP /\nCLAUDE.md accordingly.\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+    "generatedAt" : "2026-07-05T08:22:49-03:00",
     "name" : "order-sample"
   }
 }

@@ -297,15 +297,31 @@ window.addEventListener('load', function(){
 });
 </script>
 </head><body>
-<header><button id="theme-toggle" class="theme-toggle" title="Toggle light/dark" aria-label="Toggle theme">◐</button><h1>Knowledge Index</h1><div class="meta"><strong>order-sample</strong> · commit <code>6fd06d07d9</code> · 2026-07-04T23:43:39-03:00</div><details class="commitbox"><summary>chore(examples): regenerate order-sample</summary><div class="commitbody">Picks up event-flow support, the choreography section, category/feature grouping and
-the per-feature count.
+<header><button id="theme-toggle" class="theme-toggle" title="Toggle light/dark" aria-label="Toggle theme">◐</button><h1>Knowledge Index</h1><div class="meta"><strong>order-sample</strong> · commit <code>bac9b85870</code> · 2026-07-05T08:22:49-03:00</div><details class="commitbox"><summary>feat(order-sample): two-entity index with event choreography</summary><div class="commitbody">Enrich the order-sample fixture so the published example exercises more of
+the indexer than a single state machine:
 
-Co-Authored-By: Claude Opus 4.8 &lt;noreply@anthropic.com&gt;</div></details><div class="cards"><div class="cardbox"><div class="num">1</div><div class="lbl">entities</div></div><div class="cardbox"><div class="num">6</div><div class="lbl">entry points</div></div><div class="cardbox"><div class="num">19</div><div class="lbl">graph nodes</div></div><div class="cardbox"><div class="num">21</div><div class="lbl">call edges</div></div><div class="cardbox"><div class="num">1</div><div class="lbl">state machines</div></div><div class="cardbox"><div class="num">4</div><div class="lbl">test scenarios</div></div></div><div class="legend"><span class="badge fact">deterministic</span> extracted from the AST &nbsp; <span class="badge llm">interpreted</span> LLM, hover for evidence</div></header>
+- Add a Shipment entity (@ManyToOne → Order) with its own ShipmentStatus
+  state machine (PENDING → DISPATCHED → IN_TRANSIT → DELIVERED / RETURNED).
+- Add an OrderPaidEvent choreography: OrderService.pay publishes it and
+  ShipmentService consumes it via @EventListener, opening a shipment —
+  producing a producer → event → consumer flow and an event entry point.
+- Add ShipmentController (five endpoints) + repository, and a deliberately
+  partial test so coverage gaps still surface.
+
+The example now renders a two-entity ER diagram, two state machines, an
+event-driven flow and one use case per endpoint.
+
+Also publish the self-contained order-sample HTML to GitHub Pages via
+.github/workflows/pages.yml, and update README / CHANGELOG / ROADMAP /
+CLAUDE.md accordingly.
+
+Co-Authored-By: Claude Opus 4.8 &lt;noreply@anthropic.com&gt;</div></details><div class="cards"><div class="cardbox"><div class="num">2</div><div class="lbl">entities</div></div><div class="cardbox"><div class="num">12</div><div class="lbl">entry points</div></div><div class="cardbox"><div class="num">40</div><div class="lbl">graph nodes</div></div><div class="cardbox"><div class="num">45</div><div class="lbl">call edges</div></div><div class="cardbox"><div class="num">2</div><div class="lbl">state machines</div></div><div class="cardbox"><div class="num">6</div><div class="lbl">test scenarios</div></div></div><div class="legend"><span class="badge fact">deterministic</span> extracted from the AST &nbsp; <span class="badge llm">interpreted</span> LLM, hover for evidence</div></header>
 <section><h2>Use Cases <span class="sub">flows</span> <span class="badge llm" title="Use cases interpreted by agent:claude-code, anchored to endpoints &amp; tests">interpreted</span></h2>
-<div class="cards"><div class="cardbox"><div class="num">6</div><div class="lbl">use cases</div></div><div class="cardbox"><div class="num">4</div><div class="lbl">verified by tests</div></div><div class="cardbox"><div class="num">2</div><div class="lbl">coverage gaps</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">critical gaps</div></div></div>
-<div class="covroll">Coverage estimate <span class="badge llm" title="LLM estimate per use case">interpreted</span>: <span class="cov cov-full">4 full</span> · <span class="cov cov-partial">0 partial</span> · <span class="cov cov-thin">2 thin</span></div>
-<h3 class="feature">Fulfilment <span class="feat-n">2</span></h3>
-<details class="usecase"><summary><span class="scentitle">A paid order is shipped</span><span class="endpoint">POST /orders/{id}/ship</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in PAID status</div><div><span class="kw">When</span> the order is dispatched</div><div><span class="kw">Then</span> the order moves to SHIPPED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+<div class="cards"><div class="cardbox"><div class="num">12</div><div class="lbl">use cases</div></div><div class="cardbox"><div class="num">6</div><div class="lbl">verified by tests</div></div><div class="cardbox"><div class="num">6</div><div class="lbl">coverage gaps</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">critical gaps</div></div></div>
+<div class="covroll">Coverage estimate <span class="badge llm" title="LLM estimate per use case">interpreted</span>: <span class="cov cov-full">5 full</span> · <span class="cov cov-partial">1 partial</span> · <span class="cov cov-thin">6 thin</span></div>
+<div class="eptype">REST <span class="eptype-n">11 use cases</span></div>
+<h3 class="feature">Order Fulfilment <span class="feat-n">2</span></h3>
+<details class="usecase"><summary><span class="scentitle">A paid order is marked shipped</span><span class="endpoint">POST /orders/{id}/ship</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in PAID status</div><div><span class="kw">When</span> the order is dispatched</div><div><span class="kw">Then</span> the order moves to SHIPPED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant OrderController
@@ -324,7 +340,7 @@ sequenceDiagram
   OrderService-->>OrderController: Order
   OrderController-->>Client: Order
 </pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OrderServiceTest#ship_movesPaidOrderToShipped</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<details class="usecase gaprow"><summary><span class="scentitle">A shipped order is delivered</span><span class="endpoint">POST /orders/{id}/deliver</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in SHIPPED status</div><div><span class="kw">When</span> delivery is confirmed</div><div><span class="kw">Then</span> the order moves to DELIVERED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+<details class="usecase gaprow"><summary><span class="scentitle">A shipped order is marked delivered</span><span class="endpoint">POST /orders/{id}/deliver</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in SHIPPED status</div><div><span class="kw">When</span> delivery is confirmed</div><div><span class="kw">Then</span> the order moves to DELIVERED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant OrderController
@@ -342,7 +358,7 @@ sequenceDiagram
   OrderRepository-->>OrderService: Order
   OrderService-->>OrderController: Order
   OrderController-->>Client: Order
-</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the SHIPPED → DELIVERED transition has no test</li></ul></div></div></details>
+</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the order SHIPPED → DELIVERED transition has no test</li></ul></div></div></details>
 <h3 class="feature">Order Management <span class="feat-n">4</span></h3>
 <details class="usecase"><summary><span class="scentitle">Customer places a new order</span><span class="endpoint">POST /orders</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a customer with a basket total</div><div><span class="kw">When</span> the order is submitted</div><div><span class="kw">Then</span> a new order is created in NEW status and persisted</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
@@ -357,13 +373,14 @@ sequenceDiagram
   OrderService-->>OrderController: Order
   OrderController-->>Client: Order
 </pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OrderServiceTest#place_startsInNewStatus</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<details class="usecase"><summary><span class="scentitle">Payment is confirmed for an order</span><span class="endpoint">POST /orders/{id}/pay</span><span class="tag prio-critical">critical</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in NEW status</div><div><span class="kw">When</span> payment is received</div><div><span class="kw">Then</span> the order moves to PAID</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+<details class="usecase"><summary><span class="scentitle">Payment is confirmed for an order</span><span class="endpoint">POST /orders/{id}/pay</span><span class="tag prio-critical">critical</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order in NEW status</div><div><span class="kw">When</span> payment is received</div><div><span class="kw">Then</span> the order moves to PAID and an OrderPaidEvent is raised to start fulfilment</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant OrderController
   participant OrderService
   participant OrderRepository
   participant Order
+  participant ApplicationEventPublisher
   Client->>OrderController: POST /orders/(id)/pay
   OrderController->>OrderService: pay
   OrderService->>OrderService: load
@@ -373,9 +390,12 @@ sequenceDiagram
   OrderService->>Order: markPaid
   OrderService->>OrderRepository: save
   OrderRepository-->>OrderService: Order
+  OrderService->>Order: getId
+  Order-->>OrderService: Long
+  OrderService->>ApplicationEventPublisher: publishEvent
   OrderService-->>OrderController: Order
   OrderController-->>Client: Order
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OrderServiceTest#pay_movesOrderToPaid</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OrderServiceTest#pay_movesOrderToPaid</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span><ul class="tight"><li>no test asserts the OrderPaidEvent is published</li></ul></div></div></details>
 <details class="usecase"><summary><span class="scentitle">An order is cancelled</span><span class="endpoint">POST /orders/{id}/cancel</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an active order</div><div><span class="kw">When</span> the order is cancelled</div><div><span class="kw">Then</span> the order moves to CANCELLED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
@@ -410,6 +430,115 @@ sequenceDiagram
   OrderService-->>OrderController: Order
   OrderController-->>Client: Order
 </pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the lookup-by-id read has no test</li></ul></div></div></details>
+<h3 class="feature">Shipping <span class="feat-n">5</span></h3>
+<details class="usecase"><summary><span class="scentitle">A shipment is handed to the carrier</span><span class="endpoint">POST /shipments/{id}/dispatch</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a shipment in PENDING status</div><div><span class="kw">When</span> it is dispatched with a carrier</div><div><span class="kw">Then</span> the shipment moves to DISPATCHED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant ShipmentController
+  participant ShipmentService
+  participant ShipmentRepository
+  participant Shipment
+  Client->>ShipmentController: POST /shipments/(id)/dispatch
+  ShipmentController->>ShipmentService: dispatch
+  ShipmentService->>ShipmentService: load
+  ShipmentService->>ShipmentRepository: findById
+  ShipmentRepository-->>ShipmentService: Optional
+  ShipmentService-->>ShipmentService: Shipment
+  ShipmentService->>Shipment: dispatch
+  ShipmentService->>ShipmentRepository: save
+  ShipmentRepository-->>ShipmentService: Shipment
+  ShipmentService-->>ShipmentController: Shipment
+  ShipmentController-->>Client: Shipment
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">ShipmentServiceTest#dispatch_movesShipmentToDispatched</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase gaprow"><summary><span class="scentitle">A dispatched shipment goes in transit</span><span class="endpoint">POST /shipments/{id}/in-transit</span><span class="tag prio-medium">medium</span><span class="tag type">lifecycle</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a shipment in DISPATCHED status</div><div><span class="kw">When</span> the carrier reports it moving</div><div><span class="kw">Then</span> the shipment moves to IN_TRANSIT</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant ShipmentController
+  participant ShipmentService
+  participant ShipmentRepository
+  participant Shipment
+  Client->>ShipmentController: POST /shipments/(id)/in-transit
+  ShipmentController->>ShipmentService: markInTransit
+  ShipmentService->>ShipmentService: load
+  ShipmentService->>ShipmentRepository: findById
+  ShipmentRepository-->>ShipmentService: Optional
+  ShipmentService-->>ShipmentService: Shipment
+  ShipmentService->>Shipment: markInTransit
+  ShipmentService->>ShipmentRepository: save
+  ShipmentRepository-->>ShipmentService: Shipment
+  ShipmentService-->>ShipmentController: Shipment
+  ShipmentController-->>Client: Shipment
+</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the DISPATCHED → IN_TRANSIT transition has no test</li></ul></div></div></details>
+<details class="usecase gaprow"><summary><span class="scentitle">A shipment is delivered</span><span class="endpoint">POST /shipments/{id}/deliver</span><span class="tag prio-high">high</span><span class="tag type">lifecycle</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a shipment in IN_TRANSIT status</div><div><span class="kw">When</span> delivery is confirmed</div><div><span class="kw">Then</span> the shipment moves to DELIVERED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant ShipmentController
+  participant ShipmentService
+  participant ShipmentRepository
+  participant Shipment
+  Client->>ShipmentController: POST /shipments/(id)/deliver
+  ShipmentController->>ShipmentService: deliver
+  ShipmentService->>ShipmentService: load
+  ShipmentService->>ShipmentRepository: findById
+  ShipmentRepository-->>ShipmentService: Optional
+  ShipmentService-->>ShipmentService: Shipment
+  ShipmentService->>Shipment: markDelivered
+  ShipmentService->>ShipmentRepository: save
+  ShipmentRepository-->>ShipmentService: Shipment
+  ShipmentService-->>ShipmentController: Shipment
+  ShipmentController-->>Client: Shipment
+</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the shipment IN_TRANSIT → DELIVERED transition has no test</li></ul></div></div></details>
+<details class="usecase gaprow"><summary><span class="scentitle">A shipment is returned</span><span class="endpoint">POST /shipments/{id}/return</span><span class="tag prio-medium">medium</span><span class="tag type">edge-case</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a shipment in transit</div><div><span class="kw">When</span> it is sent back</div><div><span class="kw">Then</span> the shipment moves to RETURNED</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant ShipmentController
+  participant ShipmentService
+  participant ShipmentRepository
+  participant Shipment
+  Client->>ShipmentController: POST /shipments/(id)/return
+  ShipmentController->>ShipmentService: ret
+  ShipmentService->>ShipmentService: load
+  ShipmentService->>ShipmentRepository: findById
+  ShipmentRepository-->>ShipmentService: Optional
+  ShipmentService-->>ShipmentService: Shipment
+  ShipmentService->>Shipment: markReturned
+  ShipmentService->>ShipmentRepository: save
+  ShipmentRepository-->>ShipmentService: Shipment
+  ShipmentService-->>ShipmentController: Shipment
+  ShipmentController-->>Client: Shipment
+</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the return path has no test</li></ul></div></div></details>
+<details class="usecase gaprow"><summary><span class="scentitle">Someone looks up a shipment by id</span><span class="endpoint">GET /shipments/{id}</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing shipment id</div><div><span class="kw">When</span> the shipment is requested</div><div><span class="kw">Then</span> the shipment is returned without changing its state</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant ShipmentController
+  participant ShipmentService
+  participant ShipmentRepository
+  Client->>ShipmentController: GET /shipments/(id)
+  ShipmentController->>ShipmentService: find
+  ShipmentService->>ShipmentService: load
+  ShipmentService->>ShipmentRepository: findById
+  ShipmentRepository-->>ShipmentService: Optional
+  ShipmentService-->>ShipmentService: Shipment
+  ShipmentService-->>ShipmentController: Shipment
+  ShipmentController-->>Client: Shipment
+</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>the shipment lookup-by-id read has no test</li></ul></div></div></details>
+<div class="eptype">Events <span class="eptype-n">1 use case</span></div>
+<h3 class="feature">Shipping <span class="feat-n">1</span></h3>
+<details class="usecase"><summary><span class="scentitle">Paying an order opens a shipment</span><span class="endpoint">ShipmentService#onOrderPaid(OrderPaidEvent)</span><span class="tag prio-critical">critical</span><span class="tag type">lifecycle</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an order that has just been paid</div><div><span class="kw">When</span> the OrderPaidEvent is handled</div><div><span class="kw">Then</span> a shipment is created in PENDING for that order</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  participant OrderPaidEvent
+  participant ShipmentService
+  participant OrderPaidEvent
+  participant OrderRepository
+  participant ShipmentRepository
+  OrderPaidEvent->>ShipmentService: onOrderPaid(OrderPaidEvent)
+  ShipmentService->>OrderPaidEvent: getOrderId
+  OrderPaidEvent-->>ShipmentService: Long
+  ShipmentService->>OrderRepository: findById
+  OrderRepository-->>ShipmentService: Optional
+  ShipmentService->>ShipmentRepository: save
+  ShipmentRepository-->>ShipmentService: Shipment
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">ShipmentServiceTest#onOrderPaid_opensPendingShipment</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
 </section>
 <section><h2>Entity–Relationship <span class="badge fact">deterministic</span></h2>
 <pre class="mermaid">
@@ -419,6 +548,12 @@ erDiagram
     OrderStatus status
     BigDecimal total
   }
+  Shipment {
+    String carrier
+    Long id PK
+    ShipmentStatus status
+  }
+  Shipment }o--|| Order : "order"
 </pre>
 </section>
 <section><h2>State Machines</h2>
@@ -431,9 +566,28 @@ stateDiagram-v2
   SHIPPED --> DELIVERED : delivery confirmed (markDelivered)
   NEW --> CANCELLED : order cancelled (cancel)
 </pre>
-<p class="note">Evidence:</p><ul><li><code>NEW → PAID</code> — payment received (markPaid) <span class="ev">Order#markPaid (src/main/java/com/example/orders/domain/Order.java:36)</span></li><li><code>PAID → SHIPPED</code> — order dispatched (markShipped) <span class="ev">Order#markShipped (src/main/java/com/example/orders/domain/Order.java:40)</span></li><li><code>SHIPPED → DELIVERED</code> — delivery confirmed (markDelivered) <span class="ev">Order#markDelivered (src/main/java/com/example/orders/domain/Order.java:44)</span></li><li><code>NEW → CANCELLED</code> — order cancelled (cancel) <span class="ev">Order#cancel (src/main/java/com/example/orders/domain/Order.java:48)</span></li></ul></section>
+<p class="note">Evidence:</p><ul><li><code>NEW → PAID</code> — payment received (markPaid) <span class="ev">Order#markPaid (src/main/java/com/example/orders/domain/Order.java:36)</span></li><li><code>PAID → SHIPPED</code> — order dispatched (markShipped) <span class="ev">Order#markShipped (src/main/java/com/example/orders/domain/Order.java:40)</span></li><li><code>SHIPPED → DELIVERED</code> — delivery confirmed (markDelivered) <span class="ev">Order#markDelivered (src/main/java/com/example/orders/domain/Order.java:44)</span></li><li><code>NEW → CANCELLED</code> — order cancelled (cancel) <span class="ev">Order#cancel (src/main/java/com/example/orders/domain/Order.java:48)</span></li></ul><h3>ShipmentStatus <span class="badge llm" title="Transitions inferred by agent:claude-code">interpreted</span></h3>
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --> PENDING
+  PENDING --> DISPATCHED : handed to carrier (dispatch)
+  DISPATCHED --> IN_TRANSIT : in transit to customer (markInTransit)
+  IN_TRANSIT --> DELIVERED : delivery confirmed (markDelivered)
+  IN_TRANSIT --> RETURNED : shipment returned (markReturned)
+</pre>
+<p class="note">Evidence:</p><ul><li><code>PENDING → DISPATCHED</code> — handed to carrier (dispatch) <span class="ev">Shipment#dispatch (src/main/java/com/example/orders/domain/Shipment.java:41)</span></li><li><code>DISPATCHED → IN_TRANSIT</code> — in transit to customer (markInTransit) <span class="ev">Shipment#markInTransit (src/main/java/com/example/orders/domain/Shipment.java:45)</span></li><li><code>IN_TRANSIT → DELIVERED</code> — delivery confirmed (markDelivered) <span class="ev">Shipment#markDelivered (src/main/java/com/example/orders/domain/Shipment.java:49)</span></li><li><code>IN_TRANSIT → RETURNED</code> — shipment returned (markReturned) <span class="ev">Shipment#markReturned (src/main/java/com/example/orders/domain/Shipment.java:53)</span></li></ul></section>
 <section><h2>Event Choreography <span class="badge fact">deterministic</span></h2>
-<p class="empty">No domain events detected — nothing to choreograph. (Deterministic degradation: the section is simply empty.)</p></section>
+<p class="meta">1 events · 1 with a known producer · 1 listeners. <span class="sub">Dashed = async delivery (after commit).</span></p>
+<pre class="mermaid">
+flowchart LR
+  E_OrderPaidEvent{{"OrderPaidEvent"}}
+  N_OrderService["OrderService"]
+  N_ShipmentService["ShipmentService"]
+  N_OrderService -->|publishes| E_OrderPaidEvent
+  E_OrderPaidEvent --> N_ShipmentService
+</pre>
+<p class="legend">Producers publish domain events (hexagons) that decoupled module listeners consume — the async seam of the modulith. Matched by event type; a listener's own flow is its use-case sequence diagram above.</p>
+</section>
 <section><h2>Domain Map <span class="badge llm" title="Grouping by agent:claude-code">interpreted</span></h2>
 <pre class="mermaid">
 mindmap
@@ -443,12 +597,19 @@ mindmap
       OrderController
       OrderService
       OrderRepository
+    Shipping & Fulfilment
+      Shipment
+      ShipmentController
+      ShipmentService
+      ShipmentRepository
+      OrderPaidEvent
 </pre>
-<p class="note">Rationale:</p><ul><li><strong>Order Lifecycle</strong>: The full ordering vertical: HTTP surface, application service, the aggregate and its persistence.</li></ul></section>
+<p class="note">Rationale:</p><ul><li><strong>Order Lifecycle</strong>: The ordering vertical: HTTP surface, application service, the aggregate and its persistence.</li><li><strong>Shipping &amp; Fulfilment</strong>: Fulfilment vertical: a paid order raises OrderPaidEvent, which opens a Shipment that is then driven to delivery.</li></ul></section>
 <section><h2>Test Catalog <span class="badge fact">deterministic</span></h2>
-<details class="unclassified"><summary>Full test index — 1 classes, 4 scenarios</summary>
+<details class="unclassified"><summary>Full test index — 2 classes, 6 scenarios</summary>
 <table><thead><tr><th>Test class</th><th>Target</th><th>#</th><th>Scenarios</th></tr></thead><tbody>
 <tr><td><code>OrderServiceTest</code></td><td><span class="target">OrderService</span></td><td>4</td><td><ul class="tight"><li>placing an order starts it in NEW <span class="ev">place_startsInNewStatus</span></li><li>pay moves order to paid <span class="ev">pay_movesOrderToPaid</span></li><li>ship moves paid order to shipped <span class="ev">ship_movesPaidOrderToShipped</span></li><li>cancel moves order to cancelled <span class="ev">cancel_movesOrderToCancelled</span></li></ul></td></tr>
+<tr><td><code>ShipmentServiceTest</code></td><td><span class="target">ShipmentService</span></td><td>2</td><td><ul class="tight"><li>paying an order opens a shipment in PENDING <span class="ev">onOrderPaid_opensPendingShipment</span></li><li>dispatch moves shipment to dispatched <span class="ev">dispatch_movesShipmentToDispatched</span></li></ul></td></tr>
 </tbody></table></details></section>
-<footer>Generated deterministically from commit <code>6fd06d07d9</code>. Enrichment items are interpretations anchored to code evidence.</footer>
+<footer>Generated deterministically from commit <code>bac9b85870</code>. Enrichment items are interpretations anchored to code evidence.</footer>
 </body></html>
