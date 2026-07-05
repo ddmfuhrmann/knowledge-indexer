@@ -44,7 +44,15 @@ public final class CallGraphExtractor {
     public CallGraph extract(ProjectModel project, List<EntryPoint> entryPoints) {
         Map<String, Decl> declIndex = new HashMap<>();
         Set<String> enumQualifiedNames = new HashSet<>();
-        indexDeclarations(project, declIndex, enumQualifiedNames);
+        Map<String, Map<String, String>> injectedFields = new HashMap<>();
+        indexDeclarations(project, declIndex, enumQualifiedNames, injectedFields);
+        // A field typed as a project enum is a value/domain type, not an out-of-source collaborator —
+        // calls on it (name(), inherited Enum methods) must not be drawn as an infra boundary.
+        Set<String> enumSimpleNames = new HashSet<>();
+        for (String fq : enumQualifiedNames) {
+            enumSimpleNames.add(simpleTypeName(fq));
+        }
+        injectedFields.values().forEach(f -> f.values().removeIf(enumSimpleNames::contains));
 
         Map<String, Node> nodes = new TreeMap<>();
         Set<String> edgeKeys = new HashSet<>();
@@ -77,20 +85,31 @@ public final class CallGraphExtractor {
             }
             for (MethodCallExpr call : current.node().findAll(MethodCallExpr.class)) {
                 String calleeId = resolveCallee(call);
-                if (calleeId == null) {
-                    continue; // external or unresolved — deliberately excluded
+                Decl callee = calleeId == null ? null : declIndex.get(calleeId);
+                if (callee != null) {
+                    addNode(nodes, callee);
+                    String key = currentId + "->" + calleeId + "@" + Ast.line(call);
+                    if (edgeKeys.add(key)) {
+                        edges.add(new Edge(currentId, calleeId, current.file(), Ast.line(call)));
+                    }
+                    if (visited.add(calleeId)) {
+                        queue.add(calleeId);
+                    }
+                    continue;
                 }
-                Decl callee = declIndex.get(calleeId);
-                if (callee == null) {
-                    continue; // resolved, but not a project method
-                }
-                addNode(nodes, callee);
-                String key = currentId + "->" + calleeId + "@" + Ast.line(call);
-                if (edgeKeys.add(key)) {
-                    edges.add(new Edge(currentId, calleeId, current.file(), Ast.line(call)));
-                }
-                if (visited.add(calleeId)) {
-                    queue.add(calleeId);
+                // Not an in-source method. If the receiver is an injected collaborator field whose
+                // implementation lives outside the source — a Spring Data repository's inherited method
+                // (save/findById), an Elasticsearch/JDBC/HTTP client — surface the infra boundary as a
+                // synthetic leaf participant instead of dropping the call. Still a real AST fact: the
+                // call exists; we render the edge to the collaborator's type rather than invent one.
+                String infraType = injectedCollaboratorType(call, currentId, injectedFields);
+                if (infraType != null) {
+                    String synthId = "external:" + infraType + "#" + call.getNameAsString();
+                    addExternalNode(nodes, synthId, infraType, call.getNameAsString());
+                    String key = currentId + "->" + synthId + "@" + Ast.line(call);
+                    if (edgeKeys.add(key)) {
+                        edges.add(new Edge(currentId, synthId, current.file(), Ast.line(call)));
+                    }
                 }
             }
         }
@@ -106,7 +125,45 @@ public final class CallGraphExtractor {
         }
     }
 
-    private void indexDeclarations(ProjectModel project, Map<String, Decl> index, Set<String> enums) {
+    /** A synthetic leaf node for an out-of-source infra collaborator (no file/line, role "external"). */
+    private static void addExternalNode(Map<String, Node> nodes, String id, String type, String method) {
+        nodes.putIfAbsent(id, new Node(id, type, method, "", 0, "external", ""));
+    }
+
+    /** Value/utility/JDK types that are never an infra collaborator worth drawing as a boundary. */
+    private static final Set<String> VALUE_TYPES = Set.of(
+            "String", "CharSequence", "Integer", "Long", "Short", "Byte", "Boolean", "Double", "Float",
+            "Character", "BigDecimal", "BigInteger", "Number", "List", "Set", "Map", "Collection",
+            "Optional", "Stream", "UUID", "LocalDate", "LocalDateTime", "LocalTime", "Instant",
+            "Duration", "Object",
+            // common JDK collection/concurrency impls held as fields — not a datastore/gateway
+            "ArrayList", "LinkedList", "ArrayDeque", "Vector", "Stack", "Queue", "Deque",
+            "HashMap", "LinkedHashMap", "TreeMap", "ConcurrentHashMap", "HashSet", "LinkedHashSet",
+            "TreeSet", "CopyOnWriteArrayList", "CopyOnWriteArraySet", "AtomicInteger", "AtomicLong",
+            "AtomicReference", "AtomicBoolean");
+
+    /**
+     * If {@code call} is a direct {@code field.method(...)} on an instance field of the caller class
+     * whose type is not a plain value type, return that field type's simple name — the infra
+     * collaborator to draw. Only direct field receivers are considered (not fluent builder chains or
+     * locals), which is enough to surface repositories and datastore/HTTP clients cleanly.
+     */
+    private static String injectedCollaboratorType(MethodCallExpr call, String callerId,
+                                                   Map<String, Map<String, String>> injectedFields) {
+        if (call.getScope().isEmpty() || !(call.getScope().get() instanceof NameExpr recv)) {
+            return null;
+        }
+        int hash = callerId.lastIndexOf('#');
+        Map<String, String> fields = hash < 0 ? null : injectedFields.get(callerId.substring(0, hash));
+        if (fields == null) {
+            return null;
+        }
+        String type = fields.get(recv.getNameAsString());
+        return type == null || VALUE_TYPES.contains(type) ? null : type;
+    }
+
+    private void indexDeclarations(ProjectModel project, Map<String, Decl> index, Set<String> enums,
+                                   Map<String, Map<String, String>> injectedFields) {
         for (ProjectModel.ParsedFile pf : project.files()) {
             for (ClassOrInterfaceDeclaration type : pf.cu().findAll(ClassOrInterfaceDeclaration.class)) {
                 String fqcn = type.getFullyQualifiedName().orElse(type.getNameAsString());
@@ -116,11 +173,46 @@ public final class CallGraphExtractor {
                     index.putIfAbsent(id, new Decl(id, type.getNameAsString(), m.getNameAsString(),
                             pf.relPath(), Ast.line(m), role, m.getType().asString(), m));
                 }
+                // Instance fields = candidate injected collaborators (repositories, clients, gateways).
+                Map<String, String> fields = new HashMap<>();
+                for (var field : type.getFields()) {
+                    if (field.isStatic()) {
+                        continue;
+                    }
+                    for (var v : field.getVariables()) {
+                        fields.put(v.getNameAsString(), simpleTypeName(v.getType().asString()));
+                    }
+                }
+                if (!fields.isEmpty()) {
+                    injectedFields.put(fqcn, fields);
+                }
             }
             for (EnumDeclaration e : pf.cu().findAll(EnumDeclaration.class)) {
                 e.getFullyQualifiedName().ifPresent(enums::add);
+                // Index enum methods too, so a call to a project enum's own method resolves to an
+                // in-source edge instead of being mistaken for an external infra collaborator.
+                String fqcn = e.getFullyQualifiedName().orElse(e.getNameAsString());
+                for (MethodDeclaration m : e.getMethods()) {
+                    String id = fqcn + "#" + m.getNameAsString();
+                    index.putIfAbsent(id, new Decl(id, e.getNameAsString(), m.getNameAsString(),
+                            pf.relPath(), Ast.line(m), "domain", m.getType().asString(), m));
+                }
             }
         }
+    }
+
+    /** Simple type name: drop generics, package, and array brackets ({@code a.b.Foo<X>[]} → {@code Foo}). */
+    private static String simpleTypeName(String type) {
+        String t = type;
+        int lt = t.indexOf('<');
+        if (lt >= 0) {
+            t = t.substring(0, lt);
+        }
+        int dot = t.lastIndexOf('.');
+        if (dot >= 0) {
+            t = t.substring(dot + 1);
+        }
+        return t.replace("[]", "").trim();
     }
 
     private static String role(ClassOrInterfaceDeclaration type) {
