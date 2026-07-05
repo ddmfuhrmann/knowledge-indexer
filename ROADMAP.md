@@ -38,21 +38,24 @@ The `--provider sdk` path is hardened for real runs, not just built:
 - Still open: **A (scale enrichment)** for large repos, and a live run against `spring-petclinic`
   with a real `ANTHROPIC_API_KEY` (hardening verified offline via an `ANTHROPIC_BASE_URL` stub).
 
-### 3. Multi-vendor & local LLM providers — [planned]
+### 3. Multi-vendor & local LLM providers — [partly shipped]
 The enrichment provider is already pluggable (`agent` + `sdk` = Anthropic Messages API). Add more
 backends behind the same interface + evidence validator. Provider landscape and model notes:
 [docs/providers.md](docs/providers.md).
-- **OpenAI-compatible provider** — one `/v1/chat/completions` client covers OpenAI **and** most local
-  runners (Ollama, LM Studio, llama.cpp, vLLM) via `--base-url` + `--model`; key from an env var.
-- **Google Gemini** provider (its own request shape).
-- Config precedence: `--provider {anthropic|openai|gemini|local}` + `--base-url`/`--model`, keys from
-  env only (never committed).
-- **Caveat:** small/local models return messier JSON and weaker anchoring — lean on `JsonExtract`
-  (fenced-output tolerant) and the evidence validator (unanchored items already dropped), and report
-  the keep-rate so a weak model is visible rather than silently lossy.
-- **Provenance:** the model is already recorded per enrichment section; add a **footer line**
-  (provider + model + generated-at) so a run says which model interpreted it — matters once several
-  are in play.
+- ✅ **OpenAI-compatible provider** (`--provider openai`) — one `/v1/chat/completions` client covers
+  OpenAI/Groq/OpenRouter **and** local runners (Ollama, LM Studio, llama.cpp, vLLM) via `--base-url`
+  + `--model`; key from `OPENAI_API_KEY` (**optional** for local — no header when unset). `--model`
+  is required; `--thinking`/`--effort` are Anthropic-specific and ignored. Validated end-to-end
+  against local **Ollama** on `order-sample`.
+- **Google Gemini** provider (its own request shape) — still open.
+- Config precedence: `--provider {sdk|openai}` + `--base-url`/`--model`, keys from env only (never
+  committed). (`gemini` slots in here when added.)
+- **Caveat:** small/local models return messier JSON and weaker anchoring — `JsonExtract` is
+  fenced-output tolerant and the evidence validator drops unanchored items, so a weak model surfaces
+  as a low keep-rate rather than a silent loss or a crash. Ollama's default `num_ctx` truncates long
+  prompts silently (raise it for real runs — see [docs/providers.md](docs/providers.md)).
+- ✅ **Provenance footer** — the manifest already records the model per section; the HTML footer now
+  adds a line (`Enriched by <provider:model> · generated <commit-time>`), omitted on `--no-llm`.
 - **CI note:** GitHub-hosted runners are CPU-only, so a local model on the runner is slow and weak;
   prefer a cheap hosted OpenAI-compatible endpoint (key in Secrets) for the enrichment, and run the
   deterministic gate with `--no-llm` (free). See the cost options in the CI discussion.

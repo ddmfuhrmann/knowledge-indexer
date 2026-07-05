@@ -12,4 +12,19 @@ public interface EnrichmentProvider {
 
     /** Raw completion text for {@code prompt}; the caller extracts the JSON array from it. */
     String complete(String prompt) throws Exception;
+
+    /** Input tokens billed through this provider so far (0 when the provider does not meter). */
+    default long inputTokens() {
+        return 0;
+    }
+
+    /** Output tokens billed through this provider so far (0 when the provider does not meter). */
+    default long outputTokens() {
+        return 0;
+    }
+
+    /** Estimated USD spent through this provider (0 when unknown/free, e.g. a local model). */
+    default double estimatedCostUsd() {
+        return 0;
+    }
 }

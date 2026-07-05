@@ -10,10 +10,14 @@ missing. The Anthropic key is read from the **macOS keychain** automatically (se
 | `check-key.sh` | one cheap "hello world" call to Haiku to confirm the key works (auth + billing) | **yes** (tiny) |
 | `run-sdk.sh [REPO] [flags…]` | runs `run --provider sdk` against a repo (default `fixtures/order-sample`); extra args are forwarded to the binary | **yes** |
 | `run-sdk-taskmodel.sh <task=model>…` | wrapper that turns `task=model` pairs into `--task-model` flags (per-task model routing) | **yes** |
+| `run-ollama.sh [REPO] [flags…]` | runs `run --provider openai` against a local Ollama (or any OpenAI-compatible endpoint via `BASE_URL`/`MODEL`); no key for local | no (local) |
 | `determinism-check.sh [REPO]` | runs `--no-llm` twice and checks manifest/HTML are byte-identical | no (free) |
 | `test-sdk-offline.sh` | spins up a local stub and validates retry/thinking/keep-rate/cache with no key or cost | no |
-| `benchmark-matrix.sh [REPO]` | runs the model × effort cost/quality matrix (see `docs/anthropic_benchmark.md`) | **yes** (~$1.8) |
-| `benchmark-report.py [DIR]` | prints the cost × quality table from a matrix run | no |
+| `benchmark-matrix.sh [REPO]` | runs the Anthropic model × effort cost/quality matrix (see `docs/anthropic_benchmark.md`) | **yes** (~$1.8) |
+| `benchmark-report.py [DIR]` | prints the cost × quality table from an Anthropic matrix run | no |
+| `benchmark-ollama.sh [REPO]` | runs a model matrix for `--provider openai` (Ollama/local/cloud), auto-discovering `MODELS` from `BASE_URL/models` (see `docs/ollama_benchmark.md`) | no (local) |
+| `benchmark-ollama-report.py [DIR]` | prints the keep-rate + quality + wall-time table from an Ollama matrix run | no |
+| `benchmark-compare.py [ANTH_DIR] [OLL_DIR]` | unified table across the Anthropic + Ollama matrices (same quality signals + a techspeak score) | no |
 | `preview.sh [OUT] [PORT]` | serves the output directory with a static server and opens it in the browser | no |
 
 ## Examples
