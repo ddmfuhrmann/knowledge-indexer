@@ -82,6 +82,8 @@ box. Deterministic vs LLM items are badged; evidence is in a tooltip.
 - **Enrichment provider is pluggable.** Default `agent` = a file handoff where **Claude Code is the
   LLM** (no API key). `sdk` = a thin `java.net.http` client for the Anthropic Messages API
   (`ANTHROPIC_API_KEY`) — same prompts, for headless/CI. Both share the cache + evidence validator.
+  See [docs/providers.md](docs/providers.md) for models, the (planned) multi-vendor / local landscape,
+  and how to pick one.
 - **Canonical JSON** (Jackson, alphabetically sorted keys) for both hashing and on-disk files.
 
 ## Layout

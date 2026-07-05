@@ -35,7 +35,8 @@ Exercise the `--provider sdk` path live (built but never run against the API).
 
 ### 3. Multi-vendor & local LLM providers — [planned]
 The enrichment provider is already pluggable (`agent` + `sdk` = Anthropic Messages API). Add more
-backends behind the same interface + evidence validator:
+backends behind the same interface + evidence validator. Provider landscape and model notes:
+[docs/providers.md](docs/providers.md).
 - **OpenAI-compatible provider** — one `/v1/chat/completions` client covers OpenAI **and** most local
   runners (Ollama, LM Studio, llama.cpp, vLLM) via `--base-url` + `--model`; key from an env var.
 - **Google Gemini** provider (its own request shape).
