@@ -80,7 +80,10 @@ $BIN run <repo> --provider sdk --model claude-sonnet-5 --out out/   # headless, 
   open `index.html` (the Preview/MCP flow). Sequence/choreography diagrams only render client-side.
 - **Determinism check:** run `--no-llm` twice into two dirs and diff `manifest.json`.
 - Output + cache live under `<repo>/.knowledge-index/`. Never commit private example outputs — only
-  `examples/<name>/` (order-sample fixture; petclinic needs a shallow clone to regenerate).
+  `examples/<name>/` (order-sample fixture; petclinic needs a shallow clone to regenerate). The
+  `order-sample` fixture has two entities (`Order`, `Shipment`), two status enums (two state machines),
+  and an `OrderPaidEvent` choreography (publish → `@EventListener`); it's published to GitHub Pages via
+  `.github/workflows/pages.yml`.
 
 ## Docs to keep current
 
