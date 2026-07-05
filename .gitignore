@@ -1,0 +1,11 @@
+# Gradle
+build/
+.gradle/
+
+# Tool working area (cache + generated out) in fixtures or target repos — all regenerable.
+# Reproducibility of the committed examples comes from examples/<name>/enrich/responses/*.json
+# (the recorded agent interpretations), not from these.
+**/.knowledge-index/
+
+# Kept locally for testing, not committed (points at a private project).
+examples/loja-v3/
