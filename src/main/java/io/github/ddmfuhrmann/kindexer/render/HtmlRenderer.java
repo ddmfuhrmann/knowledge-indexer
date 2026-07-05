@@ -6,6 +6,8 @@ import io.github.ddmfuhrmann.kindexer.model.Entities.EntityModel;
 import io.github.ddmfuhrmann.kindexer.model.Entities.FieldModel;
 import io.github.ddmfuhrmann.kindexer.model.Entities.RelationModel;
 import io.github.ddmfuhrmann.kindexer.model.EntryPoints.EntryPoint;
+import io.github.ddmfuhrmann.kindexer.model.EventFlows.EventFlow;
+import io.github.ddmfuhrmann.kindexer.model.EventFlows.Party;
 import io.github.ddmfuhrmann.kindexer.model.Flows.ExceptionStatus;
 import io.github.ddmfuhrmann.kindexer.model.Flows.GuardCheck;
 import io.github.ddmfuhrmann.kindexer.model.Flows.InputConstraint;
@@ -45,6 +47,7 @@ public final class HtmlRenderer {
         List<ExceptionStatus> exceptionStatuses = (List<ExceptionStatus>) m.artifacts().get("exceptionStatuses").data();
         List<InputConstraint> inputConstraints = (List<InputConstraint>) m.artifacts().get("inputConstraints").data();
         List<GuardCheck> guardChecks = (List<GuardCheck>) m.artifacts().get("guardChecks").data();
+        List<EventFlow> eventFlows = (List<EventFlow>) m.artifacts().get("eventFlows").data();
         var flows = new FlowContext(entryPoints, callGraph, throwSites, exceptionStatuses, inputConstraints, guardChecks);
 
         StringBuilder h = new StringBuilder();
@@ -222,6 +225,7 @@ public final class HtmlRenderer {
         useCaseSection(h, enr(m, "behaviors"), model(m, "behaviors"), flows);
         erSection(h, entities, migrations);
         stateSection(h, stateMachines, enr(m, "stateTransitions"), model(m, "stateTransitions"));
+        eventSection(h, eventFlows);
         domainSection(h, enr(m, "domains"), model(m, "domains"), callGraph, entities);
         testSection(h, tests);
 
@@ -327,15 +331,30 @@ public final class HtmlRenderer {
                     .append("<span class=\"cov cov-thin\">").append(thin).append(" thin</span></div>\n");
         }
 
-        // Group by feature (business capability), stable order.
-        java.util.Map<String, java.util.List<JsonNode>> byFeature = new java.util.TreeMap<>();
+        // Group by entry-point category (REST / Events / Scheduled / …), then by feature within each.
+        java.util.Map<String, java.util.Map<String, java.util.List<JsonNode>>> byCategory =
+                new java.util.TreeMap<>(java.util.Comparator.comparingInt(HtmlRenderer::categoryRank)
+                        .thenComparing(java.util.Comparator.naturalOrder()));
         for (JsonNode b : useCases) {
-            byFeature.computeIfAbsent(b.path("feature").asText("General"), k -> new java.util.ArrayList<>()).add(b);
+            String cat = entryCategoryLabel(b.path("evidence").path("entryPoint").asText());
+            byCategory.computeIfAbsent(cat, k -> new java.util.TreeMap<>())
+                    .computeIfAbsent(b.path("feature").asText("General"), k -> new java.util.ArrayList<>())
+                    .add(b);
         }
-        for (var entry : byFeature.entrySet()) {
-            h.append("<h3 class=\"feature\">").append(esc(entry.getKey())).append("</h3>\n");
-            for (JsonNode b : entry.getValue()) {
-                renderUseCase(h, b, flows);
+        boolean splitByCategory = byCategory.size() > 1;
+        for (var catEntry : byCategory.entrySet()) {
+            if (splitByCategory) {
+                int n = catEntry.getValue().values().stream().mapToInt(java.util.List::size).sum();
+                h.append("<div class=\"eptype\">").append(esc(catEntry.getKey()))
+                        .append(" <span class=\"eptype-n\">").append(n).append(" use case").append(n == 1 ? "" : "s")
+                        .append("</span></div>\n");
+            }
+            for (var featEntry : catEntry.getValue().entrySet()) {
+                h.append("<h3 class=\"feature\">").append(esc(featEntry.getKey()))
+                        .append(" <span class=\"feat-n\">").append(featEntry.getValue().size()).append("</span></h3>\n");
+                for (JsonNode b : featEntry.getValue()) {
+                    renderUseCase(h, b, flows);
+                }
             }
         }
 
@@ -469,8 +488,53 @@ public final class HtmlRenderer {
         h.append("</ul></details>\n");
     }
 
+    /** Display order for the entry-point category headers in the use-case section. */
+    private static final List<String> CATEGORY_ORDER =
+            List.of("REST", "gRPC", "GraphQL", "Events", "Messaging", "Scheduled", "CLI", "Other");
+
+    private static int categoryRank(String label) {
+        int i = CATEGORY_ORDER.indexOf(label);
+        return i < 0 ? CATEGORY_ORDER.size() : i;
+    }
+
+    /** Entry-point category of a use case, from its {@code evidence.entryPoint} id prefix. */
+    private static String entryCategoryLabel(String epId) {
+        if (epId == null) {
+            return "Other";
+        }
+        if (epId.startsWith("http:")) {
+            return "REST";
+        }
+        if (epId.startsWith("event:")) {
+            return "Events";
+        }
+        if (epId.startsWith("scheduled:")) {
+            return "Scheduled";
+        }
+        if (epId.startsWith("cli:")) {
+            return "CLI";
+        }
+        if (epId.startsWith("grpc:")) {
+            return "gRPC";
+        }
+        return "Other";
+    }
+
+    /** Display label for an entry-point id: HTTP keeps "VERB /path"; event/scheduled/cli drop the
+     *  category prefix AND the package, so a listener reads {@code SaleConfirmedListener#on(SaleConfirmed)}. */
     private static String stripHttp(String id) {
-        return id == null ? "" : id.replaceFirst("^http:", "");
+        if (id == null) {
+            return "";
+        }
+        if (id.startsWith("http:")) {
+            return id.substring(5);
+        }
+        for (String prefix : new String[]{"event:", "scheduled:", "cli:"}) {
+            if (id.startsWith(prefix)) {
+                return simpleNode(id.substring(prefix.length()));
+            }
+        }
+        return id;
     }
 
     /** {@code br.com...OrderService#place} → {@code OrderService#place}. */
@@ -489,17 +553,17 @@ public final class HtmlRenderer {
 
     private static final int MAX_SEQUENCE_MESSAGES = 40;
 
-    /** One Mermaid sequenceDiagram per http endpoint, traced from the call graph. */
+    /** One Mermaid sequenceDiagram per http endpoint and per event/message listener, from the call graph. */
     private static Map<String, String> buildSequences(List<EntryPoint> eps, CallGraph cg, FlowContext ctx) {
         Map<String, String> out = new HashMap<>();
         if (cg == null) {
             return out;
         }
         Map<String, CallGraph.Node> byId = new HashMap<>();
-        Map<String, String> keyToId = new HashMap<>(); // "Class#method" -> node id
+        Map<String, String> keyToId = new HashMap<>(); // "file@line" -> node id (unique across overloads & modules)
         for (CallGraph.Node n : cg.nodes()) {
             byId.put(n.id(), n);
-            keyToId.putIfAbsent(n.className() + "#" + n.method(), n.id());
+            keyToId.putIfAbsent(n.file() + "@" + n.line(), n.id());
         }
         Map<String, List<CallGraph.Edge>> adjacency = new HashMap<>();
         for (CallGraph.Edge e : cg.edges()) {
@@ -508,10 +572,10 @@ public final class HtmlRenderer {
         adjacency.values().forEach(l -> l.sort(Comparator.comparingInt(CallGraph.Edge::line)));
 
         for (EntryPoint ep : eps) {
-            if (!"http".equals(ep.category())) {
+            if (!"http".equals(ep.category()) && !"event".equals(ep.category())) {
                 continue;
             }
-            String rootId = keyToId.get(ep.className() + "#" + ep.method());
+            String rootId = keyToId.get(ep.file() + "@" + ep.line());
             if (rootId != null) {
                 out.put(ep.id(), sequenceText(ep, rootId, byId, adjacency, ctx.alternativeFlows(ep.id())));
             }
@@ -530,18 +594,34 @@ public final class HtmlRenderer {
         expanded.add(rootId);
         traceCalls(rootId, byId, adjacency, participants, messages, expanded, new HashSet<>(), truncated);
 
-        StringBuilder d = new StringBuilder("sequenceDiagram\n  actor Client\n");
+        boolean http = "http".equals(ep.category());
+        // Initiator lane: HTTP has a Client actor; an event flow is triggered by its message/payload.
+        String initiator = http ? "Client" : (ep.destination() != null ? ep.destination() : "Event");
+        String entryArrow = (!http && ep.async()) ? "-)" : "->>";          // async delivery = open arrowhead
+        String entryLabel = http ? stripHttp(ep.id())
+                : ep.method() + "(" + (ep.destination() != null ? ep.destination() : "") + ")";
+
+        StringBuilder d = new StringBuilder("sequenceDiagram\n");
+        d.append(http ? "  actor " : "  participant ").append(MermaidSafe.id(initiator)).append('\n');
         for (String p : participants) {
             d.append("  participant ").append(MermaidSafe.id(p)).append('\n');
         }
-        d.append("  Client->>").append(MermaidSafe.id(rootClass)).append(": ")
-                .append(MermaidSafe.label(stripHttp(ep.id()))).append('\n');
+        d.append("  ").append(MermaidSafe.id(initiator)).append(entryArrow).append(MermaidSafe.id(rootClass))
+                .append(": ").append(MermaidSafe.label(entryLabel)).append('\n');
+        if (!http && ep.async()) {
+            d.append("  Note over ").append(MermaidSafe.id(rootClass)).append(": async, after commit\n");
+        }
         for (String[] msg : messages) { // {from, to, label, arrow}
             d.append("  ").append(MermaidSafe.id(msg[0])).append(msg[3]).append(MermaidSafe.id(msg[1]))
                     .append(": ").append(MermaidSafe.label(msg[2])).append('\n');
         }
         if (truncated[0]) {
             d.append("  Note over ").append(MermaidSafe.id(rootClass)).append(": … sequence truncated\n");
+        }
+        // Event flows are fire-and-forget: no synchronous response to return to a caller. The traced
+        // calls (and any infra boundary) are the whole story; stop here.
+        if (!http) {
+            return d.toString();
         }
         // Final outcome — always returned to the Client by the controller (the HTTP boundary): either
         // the success response, or one of the reachable exceptions translated to an error status. Both
@@ -916,6 +996,56 @@ public final class HtmlRenderer {
         h.append("</section>\n");
     }
 
+    // ---- event choreography (Spring Modulith / pub-sub) -----------------------------------
+
+    /**
+     * Producer → event → consumer graph. Producers publish domain events (left); decoupled module
+     * listeners consume them (right), matched by event type. Async delivery (@ApplicationModuleListener
+     * / broker) is drawn dashed. All deterministic — the seam a modular monolith communicates over.
+     */
+    private void eventSection(StringBuilder h, List<EventFlow> flows) {
+        h.append("<section><h2>Event Choreography ").append(badgeFact()).append("</h2>\n");
+        if (flows == null || flows.isEmpty()) {
+            h.append("<p class=\"empty\">No domain events detected — nothing to choreograph. "
+                    + "(Deterministic degradation: the section is simply empty.)</p></section>\n");
+            return;
+        }
+        long produced = flows.stream().filter(f -> !f.producers().isEmpty()).count();
+        long listeners = flows.stream().flatMap(f -> f.consumers().stream())
+                .map(p -> p.className() + "#" + p.method() + "@" + p.line()).distinct().count();
+        h.append("<p class=\"meta\">").append(flows.size()).append(" events · ").append(produced)
+                .append(" with a known producer · ").append(listeners)
+                .append(" listeners. <span class=\"sub\">Dashed = async delivery (after commit).</span></p>\n");
+
+        StringBuilder d = new StringBuilder("flowchart LR\n");
+        LinkedHashSet<String> decls = new LinkedHashSet<>();
+        List<String> edges = new ArrayList<>();
+        for (EventFlow f : flows) {
+            String ev = MermaidSafe.id("E_" + f.event());
+            decls.add("  " + ev + "{{\"" + MermaidSafe.label(f.event()) + "\"}}");
+            for (Party p : f.producers()) {
+                if (p.className() == null || p.className().equals("?")) {
+                    continue;
+                }
+                String pid = MermaidSafe.id("N_" + p.className());
+                decls.add("  " + pid + "[\"" + MermaidSafe.label(p.className()) + "\"]");
+                edges.add("  " + pid + " -->|publishes| " + ev);
+            }
+            for (Party c : f.consumers()) {
+                String cid = MermaidSafe.id("N_" + c.className());
+                decls.add("  " + cid + "[\"" + MermaidSafe.label(c.className()) + "\"]");
+                edges.add("  " + ev + (c.async() ? " -.->|async| " : " --> ") + cid);
+            }
+        }
+        decls.forEach(s -> d.append(s).append('\n'));
+        edges.forEach(s -> d.append(s).append('\n'));
+        h.append(mermaid(d.toString()));
+        h.append("<p class=\"legend\">Producers publish domain events (hexagons) that decoupled module "
+                + "listeners consume — the async seam of the modulith. Matched by event type; a listener's "
+                + "own flow is its use-case sequence diagram above.</p>\n");
+        h.append("</section>\n");
+    }
+
     /** Initial state = the value set at a constructor/initializer site (method == null), else first. */
     private String initialState(StateMachine sm) {
         for (CallGraph.AssignmentSite s : sm.assignmentSites()) {
@@ -1137,6 +1267,11 @@ public final class HtmlRenderer {
                 footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);margin-top:2rem}
                 .sub{color:var(--muted);font-weight:400;font-size:.9rem}
                 h3.feature{color:var(--accent);border-bottom:1px dashed var(--line);padding-bottom:.2rem}
+                .eptype{margin:1.8rem 0 .2rem;font-size:1.05rem;font-weight:700;letter-spacing:.05em;
+                     text-transform:uppercase;border-bottom:2px solid var(--accent);padding-bottom:.3rem}
+                .eptype-n{font-weight:400;font-size:.78rem;letter-spacing:0;text-transform:none;color:var(--muted)}
+                .feat-n{font-weight:400;font-size:.72rem;color:var(--muted);vertical-align:middle;
+                     border:1px solid var(--line);border-radius:9px;padding:0 .4rem;margin-left:.15rem}
                 .scenario{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
                           padding:.5rem .7rem;margin:.5rem 0;background:#fff}
                 .scenario.gaprow{border-left-color:var(--gap);background:#fff8f8}
