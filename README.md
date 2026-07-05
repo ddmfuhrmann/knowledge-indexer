@@ -4,6 +4,9 @@ A utility that turns a **Spring Boot** repo's working tree into a knowledge inde
 AST extraction, enriched by an LLM only where interpretation is required, rendered to a
 self-contained, themeable HTML.
 
+> **Live example:** the `order-sample` index is published to GitHub Pages —
+> <https://ddmfuhrmann.github.io/knowledge-indexer/>.
+>
 > Forward plan lives in [ROADMAP.md](ROADMAP.md); notable changes in [CHANGELOG.md](CHANGELOG.md).
 
 ## Two layers, strictly separated
@@ -104,7 +107,8 @@ src/main/java/.../kindex/
     task/Tasks.java        the 3 tasks: behaviors (use cases), stateTransitions, domains
   manifest/Manifest.java   single source of truth
   render/HtmlRenderer.java manifest → self-contained HTML (Mermaid, theme, sequence/alt blocks)
-fixtures/order-sample/     tiny Spring Boot with an OrderStatus enum (exercises the state machine)
+fixtures/order-sample/     tiny Spring Boot: Order + Shipment entities, two status enums (two state
+                             machines), and an OrderPaidEvent choreography (publish → @EventListener)
 examples/                  committed manifest.json + index.html per example run (order-sample, petclinic, …)
 ROADMAP.md                 forward plan
 ```

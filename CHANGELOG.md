@@ -24,6 +24,13 @@ everything below the foundation is under **Unreleased**.
   a subtle per-feature count; event labels shown without the package
   (`SaleConfirmedListener#on(SaleConfirmed)`).
 - **petclinic worked example** regenerated in the per-endpoint model.
+- **GitHub Pages publishing** — `.github/workflows/pages.yml` deploys the committed, self-contained
+  `examples/order-sample/` to GitHub Pages on push to `main` (or manually via `workflow_dispatch`).
+  Live at <https://ddmfuhrmann.github.io/knowledge-indexer/>.
+- **order-sample enriched** — a second entity (`Shipment`) with its own `ShipmentStatus` state
+  machine and an `OrderPaidEvent` choreography (published by `OrderService.pay`, consumed by a
+  `@EventListener` on `ShipmentService`), so the example now exercises event flows and a two-entity ER
+  diagram, not just a single state machine.
 
 ### Changed
 - **Use-case model: one BDD scenario per entry point** (previously capability-level cards spanning

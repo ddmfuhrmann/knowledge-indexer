@@ -2,6 +2,11 @@
   {
     "domain": "Order Lifecycle",
     "members": ["Order", "OrderController", "OrderService", "OrderRepository"],
-    "rationale": "The full ordering vertical: HTTP surface, application service, the aggregate and its persistence."
+    "rationale": "The ordering vertical: HTTP surface, application service, the aggregate and its persistence."
+  },
+  {
+    "domain": "Shipping & Fulfilment",
+    "members": ["Shipment", "ShipmentController", "ShipmentService", "ShipmentRepository", "OrderPaidEvent"],
+    "rationale": "Fulfilment vertical: a paid order raises OrderPaidEvent, which opens a Shipment that is then driven to delivery."
   }
 ]

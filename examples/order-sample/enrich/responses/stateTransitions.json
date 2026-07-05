@@ -22,5 +22,29 @@
     "to": "CANCELLED",
     "trigger": "order cancelled (cancel)",
     "evidence": { "class": "Order", "method": "cancel", "file": "src/main/java/com/example/orders/domain/Order.java", "line": 48 }
+  },
+  {
+    "from": "PENDING",
+    "to": "DISPATCHED",
+    "trigger": "handed to carrier (dispatch)",
+    "evidence": { "class": "Shipment", "method": "dispatch", "file": "src/main/java/com/example/orders/domain/Shipment.java", "line": 41 }
+  },
+  {
+    "from": "DISPATCHED",
+    "to": "IN_TRANSIT",
+    "trigger": "in transit to customer (markInTransit)",
+    "evidence": { "class": "Shipment", "method": "markInTransit", "file": "src/main/java/com/example/orders/domain/Shipment.java", "line": 45 }
+  },
+  {
+    "from": "IN_TRANSIT",
+    "to": "DELIVERED",
+    "trigger": "delivery confirmed (markDelivered)",
+    "evidence": { "class": "Shipment", "method": "markDelivered", "file": "src/main/java/com/example/orders/domain/Shipment.java", "line": 49 }
+  },
+  {
+    "from": "IN_TRANSIT",
+    "to": "RETURNED",
+    "trigger": "shipment returned (markReturned)",
+    "evidence": { "class": "Shipment", "method": "markReturned", "file": "src/main/java/com/example/orders/domain/Shipment.java", "line": 53 }
   }
 ]

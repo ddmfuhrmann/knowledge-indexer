@@ -1,7 +1,9 @@
 package com.example.orders.service;
 
 import com.example.orders.domain.Order;
+import com.example.orders.event.OrderPaidEvent;
 import com.example.orders.repository.OrderRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -11,9 +13,11 @@ import java.math.BigDecimal;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final ApplicationEventPublisher events;
 
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(OrderRepository orderRepository, ApplicationEventPublisher events) {
         this.orderRepository = orderRepository;
+        this.events = events;
     }
 
     public Order place(BigDecimal total) {
@@ -24,7 +28,9 @@ public class OrderService {
     public Order pay(Long id) {
         Order order = load(id);
         order.markPaid();
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+        events.publishEvent(new OrderPaidEvent(saved.getId()));
+        return saved;
     }
 
     public Order ship(Long id) {

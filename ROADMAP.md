@@ -74,6 +74,8 @@ prompt/schema change invalidates the relevant entries.
 Run against any repo without cloning another.
 - ✅ Extracted to its own repo (`~/git/knowledge-indexer`) with a neutral package
   (`io.github.ddmfuhrmann.kindexer`).
+- ✅ **Hosted example** — `order-sample` published to GitHub Pages via `.github/workflows/pages.yml`
+  (the self-contained HTML needs no build to serve): <https://ddmfuhrmann.github.io/knowledge-indexer/>.
 - Remaining: distributable fat-jar / Docker image / release so `knowledge-indexer run <repo>` works
   anywhere without a local Gradle build.
 
