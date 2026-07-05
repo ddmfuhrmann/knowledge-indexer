@@ -58,11 +58,14 @@ public final class CallGraphExtractor {
         Set<String> edgeKeys = new HashSet<>();
         List<Edge> edges = new ArrayList<>();
 
-        // Roots: entry-point methods that map to an indexed declaration.
+        // Roots: entry-point methods that map to an indexed declaration. Match on (file, line) — the
+        // only key unique across overloads AND same-named classes in different modules (a modular
+        // monolith often has one XListener per module).
         List<String> roots = new ArrayList<>();
         for (EntryPoint ep : entryPoints) {
             declIndex.values().stream()
-                    .filter(d -> d.className().equals(ep.className()) && d.method().equals(ep.method()))
+                    .filter(d -> d.file().equals(ep.file()) && d.line() == ep.line()
+                            && d.method().equals(ep.method()))
                     .findFirst()
                     .ifPresent(d -> roots.add(d.id()));
         }
@@ -169,7 +172,9 @@ public final class CallGraphExtractor {
                 String fqcn = type.getFullyQualifiedName().orElse(type.getNameAsString());
                 String role = role(type);
                 for (MethodDeclaration m : type.getMethods()) {
-                    String id = fqcn + "#" + m.getNameAsString();
+                    // Overloads share a name; disambiguate the 2nd+ by line so each is its own node.
+                    String nameId = fqcn + "#" + m.getNameAsString();
+                    String id = index.containsKey(nameId) ? nameId + "~" + Ast.line(m) : nameId;
                     index.putIfAbsent(id, new Decl(id, type.getNameAsString(), m.getNameAsString(),
                             pf.relPath(), Ast.line(m), role, m.getType().asString(), m));
                 }
