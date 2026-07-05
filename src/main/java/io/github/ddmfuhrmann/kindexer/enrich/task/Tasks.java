@@ -180,16 +180,20 @@ public final class Tasks {
 
         public String instructions() {
             return """
-                Produce BUSINESS-FACING use cases (flows): one BDD scenario per meaningful use case,
-                in domain language a product owner would recognize — NOT test-method paraphrases.
-                Each use case is a flow that ENTERS THROUGH AN ENDPOINT: derive it from an entry point
-                plus the call graph / state machine it drives, then link it to the test(s) that verify
-                it, or mark it as an uncovered gap.
-                Curate: merge trivial CRUD into capability-level use cases; aim for the meaningful
-                flows, not one item per endpoint.
+                Produce BUSINESS-FACING use cases (flows), in domain language a product owner would
+                recognize — NOT test-method paraphrases.
+                UNIT = ONE FLOW THROUGH ONE ENDPOINT. Emit one scenario PER meaningful endpoint, not
+                one per capability. This is deliberate: each scenario renders its OWN sequence diagram
+                traced from its OWN entry point, so a scenario that claims several endpoints would show
+                a diagram for only one of them — a lie. Keep it 1:1 so the diagram is faithful.
+                Reads are first-class: a GET is its own scenario (e.g. "Search products", "Get product
+                by id") with a read flow (controller → read repository → db), separate from the write.
+                GROUPING: put the business capability in "feature" (e.g. "Catalog · Brands"); the
+                renderer groups scenarios under it. So "feature" is the capability header, "scenario"
+                is the single flow — together they read like "Catalog · Brands › Create brand".
                 OUTPUT: a JSON array only. Each item:
-                  {"feature": <business capability, e.g. "Sales">,
-                   "scenario": <use case title>,
+                  {"feature": <business capability / group header, e.g. "Catalog · Brands">,
+                   "scenario": <single-flow title, e.g. "Create brand", "Search brands">,
                    "given": <precondition, business language>,
                    "when": <action>,
                    "then": <outcome>,
@@ -200,18 +204,20 @@ public final class Tasks {
                    "coverage": {"level": one of ["full","partial","thin"],
                                 "untested": [<short aspect with no apparent test, e.g.
                                               "404 unknown salesperson2", "409 frozen edit">, ...]},
-                   "evidence": {"entryPoint": <primary entry point id — REQUIRED, must be a real one>,
-                                "covers": [<other entry point ids this use case also covers>, ...],
+                   "evidence": {"entryPoint": <the flow's entry point id — REQUIRED, must be a real one>,
+                                "covers": [<only truly REDUNDANT endpoint ids, e.g. an exact alias — NOT
+                                            sibling CRUD verbs; normally leave empty>, ...],
                                 "nodes": [<node id along the flow>, ...],
                                 "assignmentSites": [<"file:line">, ...]}}
                 RULES:
                   - evidence.entryPoint is MANDATORY and must be one of the provided entryPoints' id.
                     A use case without a valid endpoint is discarded.
-                  - Aim to cover EVERY endpoint: a capability-level use case (e.g. "Manage brands")
-                    should list its sibling CRUD endpoints in evidence.covers (list/get/create/update/
-                    delete/options) so no endpoint is left unclassified. Invalid covers ids are dropped.
-                  - 'nodes' should trace the flow (controller → service → domain); invalid node ids are
-                    dropped from the display.
+                  - Cover EVERY endpoint by giving it its OWN scenario (reads included). Do NOT fold
+                    sibling CRUD verbs into one card via 'covers'; 'covers' is only for a genuinely
+                    redundant/aliased endpoint that shares the exact same flow. Invalid covers ids are
+                    dropped. An endpoint with no scenario shows up under "Endpoints without a use case".
+                  - 'nodes' should trace the flow (controller → service → domain; reads: controller →
+                    read repository); invalid node ids are dropped from the display.
                   - 'verifiedBy' entries must be real "TestClass#method" from 'tests'; invalid ones are
                     dropped and 'gap' is recomputed.
                   - 'coverage' estimates test coverage of the WHOLE flow: cross the reachable throwSites
