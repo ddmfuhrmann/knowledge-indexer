@@ -86,10 +86,24 @@ public final class ProjectModel {
         return new ProjectModel(repoRoot, List.copyOf(parsed));
     }
 
-    /** Directories never worth descending into (build output, VCS, tool caches, IDE metadata). */
+    /** Build output / dependency dirs to skip. Dot-directories (.git, .idea, .gradle, .knowledge-index,
+     *  git worktrees under .claude, …) are pruned separately by {@link #pruned} — no need to list them. */
     private static final Set<String> IGNORED_DIRS = Set.of(
-            "build", "target", "out", "bin", ".git", ".gradle", ".mvn", ".idea", ".vscode",
-            "node_modules", ".knowledge-index");
+            "build", "target", "out", "bin", "node_modules");
+
+    /**
+     * Whether to skip descending into {@code dir}. Prunes the build/dep dirs above, plus <b>any
+     * dot-directory</b> (name starting with {@code .}) — VCS/IDE/tool metadata and nested git
+     * worktrees live there and never hold real Spring source. The walk root itself is never pruned,
+     * so a repo located under a dotted path (e.g. {@code ~/.local/repo}) still parses.
+     */
+    private static boolean pruned(Path dir, Path start, Set<String> ignored) {
+        if (dir.equals(start)) return false;
+        Path name = dir.getFileName();
+        if (name == null) return false;
+        String n = name.toString();
+        return ignored.contains(n) || n.startsWith(".");
+    }
 
     /**
      * Every {@code src/main/java} and {@code src/test/java} anywhere in the tree — so a multi-module
@@ -103,8 +117,7 @@ public final class ProjectModel {
             Files.walkFileTree(repoRoot, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                    Path name = dir.getFileName();
-                    if (name != null && ignored.contains(name.toString())) {
+                    if (pruned(dir, repoRoot, ignored)) {
                         return FileVisitResult.SKIP_SUBTREE;
                     }
                     String s = dir.toString().replace('\\', '/');
@@ -131,8 +144,7 @@ public final class ProjectModel {
             Files.walkFileTree(root, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                    Path name = dir.getFileName();
-                    return name != null && ignored.contains(name.toString())
+                    return pruned(dir, root, ignored)
                             ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
                 }
 
