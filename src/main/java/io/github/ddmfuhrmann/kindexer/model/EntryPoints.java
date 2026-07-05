@@ -15,9 +15,10 @@ public final class EntryPoints {
             String httpMethod,   // http
             String path,         // http
             String cron,         // scheduled (cron or fixedRate expr)
-            String destination,  // event (topic/queue) when present
+            String destination,  // event: the payload type (in-process) or topic/queue/channel (broker)
             String className,
             String method,
             String file,
-            int line) {}
+            int line,
+            boolean async) {}    // event: true for async/after-commit listeners (@ApplicationModuleListener, @Async)
 }
