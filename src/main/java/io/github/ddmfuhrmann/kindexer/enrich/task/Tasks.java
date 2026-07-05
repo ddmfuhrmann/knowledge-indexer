@@ -4,7 +4,12 @@ import io.github.ddmfuhrmann.kindexer.enrich.Deterministic;
 import io.github.ddmfuhrmann.kindexer.enrich.EnrichmentTask;
 import io.github.ddmfuhrmann.kindexer.enrich.EvidenceIndex;
 import io.github.ddmfuhrmann.kindexer.model.CallGraph;
+import io.github.ddmfuhrmann.kindexer.model.EntryPoints.EntryPoint;
 import io.github.ddmfuhrmann.kindexer.util.Json;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.LinkedHashSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
@@ -178,6 +183,123 @@ public final class Tasks {
             return m;
         }
 
+        // ---- Chunking: split by controller, scope the call graph + facts to each chunk ----------
+
+        /** Auto mode target: ~90K chars of scoped material per chunk (≈40K tokens ≈ ~50s/call). */
+        private static final int AUTO_CHUNK_CHARS = 90_000;
+
+        public List<Object> chunks(Deterministic det, int chunkSize) {
+            List<EntryPoint> all = det.entryPoints();
+            // chunkSize > 0 → manual cap of endpoints per chunk; <= 0 → auto by material size.
+            if (chunkSize > 0 && all.size() <= chunkSize) {
+                return List.of(material(det)); // fits the manual cap: one prompt, unchanged material
+            }
+            if (chunkSize <= 0 && sizeChars(material(det)) <= AUTO_CHUNK_CHARS) {
+                return List.of(material(det)); // whole material fits the budget: one prompt, unchanged
+            }
+            // Group by declaring class (a controller ≈ a feature) so a controller is never split;
+            // pack whole class-groups until the next would exceed the bound. TreeMap = stable order.
+            TreeMap<String, List<EntryPoint>> byClass = new TreeMap<>();
+            for (EntryPoint ep : all) {
+                byClass.computeIfAbsent(ep.className() == null ? "" : ep.className(), k -> new ArrayList<>()).add(ep);
+            }
+            List<Object> out = new ArrayList<>();
+            List<EntryPoint> cur = new ArrayList<>();
+            for (List<EntryPoint> grp : byClass.values()) {
+                List<EntryPoint> candidate = new ArrayList<>(cur);
+                candidate.addAll(grp);
+                boolean over = chunkSize > 0
+                        ? candidate.size() > chunkSize                       // manual: by endpoint count
+                        : sizeChars(scopedMaterial(det, candidate)) > AUTO_CHUNK_CHARS; // auto: by size
+                if (!cur.isEmpty() && over) {
+                    out.add(scopedMaterial(det, cur));
+                    cur = new ArrayList<>(grp);
+                } else {
+                    cur = candidate;
+                }
+            }
+            if (!cur.isEmpty()) {
+                out.add(scopedMaterial(det, cur));
+            }
+            return out;
+        }
+
+        private static int sizeChars(Object material) {
+            try {
+                return Json.pretty().writeValueAsString(material).length();
+            } catch (Exception e) {
+                return Integer.MAX_VALUE; // unserializable → force its own chunk
+            }
+        }
+
+        /** Material for one chunk: its endpoints + the reachable sub-graph + facts scoped to it. */
+        private Object scopedMaterial(Deterministic det, List<EntryPoint> eps) {
+            CallGraph cg = det.callGraph();
+            // entry-point root nodes (matched by file:line), then the reachable closure over edges.
+            Set<String> reachable = new java.util.TreeSet<>();
+            if (cg != null) {
+                Map<String, String> nodeByLoc = new java.util.HashMap<>();
+                for (CallGraph.Node n : cg.nodes()) {
+                    nodeByLoc.put(n.file() + "\0" + n.line(), n.id());
+                }
+                for (EntryPoint ep : eps) {
+                    String root = nodeByLoc.get(ep.file() + "\0" + ep.line());
+                    if (root != null) {
+                        reachable.add(root);
+                    }
+                }
+                Map<String, List<String>> adj = new java.util.HashMap<>();
+                for (CallGraph.Edge e : cg.edges()) {
+                    adj.computeIfAbsent(e.from(), k -> new ArrayList<>()).add(e.to());
+                }
+                Deque<String> q = new ArrayDeque<>(reachable);
+                while (!q.isEmpty()) {
+                    for (String nx : adj.getOrDefault(q.poll(), List.of())) {
+                        if (reachable.add(nx)) {
+                            q.add(nx);
+                        }
+                    }
+                }
+            }
+            List<CallGraph.Node> nodes = new ArrayList<>();
+            Set<String> classes = new java.util.TreeSet<>();
+            if (cg != null) {
+                for (CallGraph.Node n : cg.nodes()) {
+                    if (reachable.contains(n.id())) {
+                        nodes.add(n);
+                        classes.add(n.className());
+                    }
+                }
+            }
+            for (EntryPoint ep : eps) {
+                if (ep.className() != null) classes.add(ep.className());
+            }
+            List<CallGraph.Edge> edges = new ArrayList<>();
+            if (cg != null) {
+                for (CallGraph.Edge e : cg.edges()) {
+                    if (reachable.contains(e.from()) && reachable.contains(e.to())) edges.add(e);
+                }
+            }
+            Set<String> epIds = new LinkedHashSet<>();
+            for (EntryPoint ep : eps) epIds.add(ep.id());
+
+            Map<String, Object> m = new TreeMap<>();
+            m.put("entryPoints", eps);
+            m.put("nodes", nodes);
+            m.put("edges", edges);
+            m.put("stateMachines", det.stateMachines());          // small — shared context, keep all
+            m.put("tests", det.testScenarios().stream()
+                    .filter(t -> t.targetClass() != null && classes.contains(t.targetClass())).toList());
+            m.put("throwSites", det.throwSites().stream()
+                    .filter(t -> reachable.contains(t.nodeId())).toList());
+            m.put("exceptionStatuses", det.exceptionStatuses()); // small — keep all
+            m.put("inputConstraints", det.inputConstraints().stream()
+                    .filter(ic -> epIds.contains(ic.entryPointId())).toList());
+            m.put("guardChecks", det.guardChecks().stream()
+                    .filter(g -> reachable.contains(g.nodeId())).toList());
+            return m;
+        }
+
         public String instructions() {
             return """
                 Produce BUSINESS-FACING use cases (flows), in domain language a product owner would
@@ -265,6 +387,11 @@ public final class Tasks {
                     sibling CRUD verbs into one card via 'covers'; 'covers' is only for a genuinely
                     redundant/aliased endpoint that shares the exact same flow. Invalid covers ids are
                     dropped. An endpoint with no scenario shows up under "Endpoints without a use case".
+                  - EXACTLY ONE scenario per endpoint id — one card, not one per branch. Do NOT split
+                    an endpoint's happy path from its validation / error / security branches into
+                    separate scenarios: those branches go in THIS scenario's coverage.untested (or are
+                    noted as tested). Two scenarios sharing the same evidence.entryPoint is an error —
+                    they render the same sequence diagram. One endpoint → one use case.
                   - 'nodes' should trace the flow (controller → service → domain; reads: controller →
                     read repository); invalid node ids are dropped from the display.
                   - 'verifiedBy' entries must be real "TestClass#method" from 'tests'; invalid ones are
@@ -287,11 +414,18 @@ public final class Tasks {
 
         public ArrayNode validate(JsonNode rawItems, EvidenceIndex idx) {
             ArrayNode out = array();
+            // 1:1 design: one card per endpoint. A small chunk can make the model emit a card per
+            // branch (login ok + each failure); keep the first per entryPoint, drop the rest — their
+            // branches belong in coverage.untested, and duplicates render identical diagrams.
+            Set<String> seenEntryPoints = new LinkedHashSet<>();
             for (JsonNode it : items(rawItems)) {
                 JsonNode ev = it.get("evidence");
                 // A use case MUST enter through a real endpoint.
                 if (ev == null || !idx.hasEntryPoint(text(ev, "entryPoint")) || text(it, "scenario") == null) {
                     continue;
+                }
+                if (!seenEntryPoints.add(text(ev, "entryPoint"))) {
+                    continue; // already have a scenario for this endpoint
                 }
                 var copy = (com.fasterxml.jackson.databind.node.ObjectNode) it.deepCopy();
                 var evCopy = (com.fasterxml.jackson.databind.node.ObjectNode) copy.get("evidence");

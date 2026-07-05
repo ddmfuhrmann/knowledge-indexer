@@ -62,6 +62,12 @@ list). Keep `EvidenceIndex.build` in sync if the artifact introduces new anchors
 - **Infra boundary** in sequences comes from injected fields (`repo.x()` and `this.repo.x()`) whose
   call doesn't resolve in-source — surfaced as a synthetic `external` node. Value-type/JDK fields and
   project enums are excluded to avoid noise.
+- **`behaviors` chunks on large repos; only it does.** `EnrichmentTask.chunks()` defaults to one
+  chunk (whole material); `Behaviors` overrides it to split by controller with the call graph
+  **scoped per chunk** (BFS reachable from the chunk's endpoints). The Enricher loops chunks, caches
+  each by its own material hash, and merges before `validate()`. Keep the design **1:1** (one use case
+  per endpoint) — `Behaviors.validate` dedups by `entryPoint` as a backstop, since a small chunk
+  tempts the model to emit a card per branch. `domains`/`stateTransitions` are never chunked.
 
 ## Build, run, verify
 

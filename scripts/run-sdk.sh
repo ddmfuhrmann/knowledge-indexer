@@ -23,7 +23,7 @@ cd "$(ki_root)"
 REPO="${1:-fixtures/order-sample}"
 shift || true            # remaining args are forwarded to the binary
 [ "${1:-}" = "--" ] && shift || true
-MODEL="${MODEL:-claude-sonnet-5}"
+MODEL="${MODEL:-claude-haiku-4-5}"   # matches the binary's default (see docs/anthropic_benchmark.md)
 MAX_TOKENS="${MAX_TOKENS:-16000}"
 OUT="${OUT:-/tmp/ki-sdk}"
 
@@ -43,8 +43,9 @@ reason_flag=()
 model_label="model"
 case "$*" in *"--task-model"*) model_label="default-model" ;; esac
 echo "[ki] run --provider sdk ${model_label}=$MODEL max-tokens=$MAX_TOKENS thinking=${THINKING:-off}${EFFORT:+ effort=$EFFORT} repo=$REPO out=$OUT ${*:+extra: $*}" >&2
+# ${arr[@]+…} guard: macOS bash 3.2 errors on "${arr[@]}" for an empty array under `set -u`.
 "$(ki_bin)" run "$REPO" --provider sdk --model "$MODEL" --max-tokens "$MAX_TOKENS" \
-  "${reason_flag[@]}" --out "$OUT" "$@"
+  ${reason_flag[@]+"${reason_flag[@]}"} --out "$OUT" "$@"
 
 echo >&2
 echo "[ki] done. Open the diagrams with:  scripts/preview.sh $OUT" >&2

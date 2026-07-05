@@ -32,11 +32,7 @@ public final class Enricher {
     private Ctx contextFor(EnrichmentTask task, Deterministic det) {
         Object material = task.material(det);
         String hash = ContentHash.of(material);
-        String prompt = task.instructions()
-                + "\n\nMATERIAL (deterministic — do not invent anything beyond this):\n"
-                + writePretty(material)
-                + "\n\nReturn ONLY the JSON array described above.";
-        return new Ctx(task, material, hash, task.promptVersion(), prompt);
+        return new Ctx(task, material, hash, task.promptVersion(), buildPrompt(task.instructions(), material));
     }
 
     /** {@code --no-llm}: every section present but empty, still keyed by its sourceHash. */
@@ -101,17 +97,28 @@ public final class Enricher {
         return out;
     }
 
+    /** {@code 0} = auto-size behaviors chunks by material size; {@code >0} caps endpoints per chunk. */
+    public static final int DEFAULT_CHUNK = 0;
+
     /** Headless {@code --provider sdk}: cache-or-call, validate, cache, all in one pass. */
     public java.util.Map<String, EnrichmentSection> runWithProvider(Deterministic det, Path repoRoot, EnrichmentProvider provider) {
-        return runWithProvider(det, repoRoot, task -> provider);
+        return runWithProvider(det, repoRoot, task -> provider, DEFAULT_CHUNK);
+    }
+
+    public java.util.Map<String, EnrichmentSection> runWithProvider(
+            Deterministic det, Path repoRoot, java.util.function.Function<EnrichmentTask, EnrichmentProvider> providerFor) {
+        return runWithProvider(det, repoRoot, providerFor, DEFAULT_CHUNK);
     }
 
     /**
-     * Same as above, but the provider is resolved per task — so a single run can route different
-     * tasks to different models (e.g. the interpretive {@code behaviors} task to a stronger model).
+     * The provider is resolved per task (so a run can route one task to a different model), and each
+     * task's material is split into chunks (see {@link EnrichmentTask#chunks}) so a large repo doesn't
+     * send one megaprompt that blows the token budget / request timeout. Each chunk is cached and
+     * validated on its own; the results are merged into the task's section.
      */
     public java.util.Map<String, EnrichmentSection> runWithProvider(
-            Deterministic det, Path repoRoot, java.util.function.Function<EnrichmentTask, EnrichmentProvider> providerFor) {
+            Deterministic det, Path repoRoot,
+            java.util.function.Function<EnrichmentTask, EnrichmentProvider> providerFor, int chunkSize) {
         EnrichmentCache cache = new EnrichmentCache(repoRoot);
         EvidenceIndex idx = det.evidenceIndex();
         java.util.Map<String, EnrichmentSection> out = new TreeMap<>();
@@ -123,46 +130,66 @@ public final class Enricher {
         for (EnrichmentTask task : tasks) {
             i++;
             EnrichmentProvider provider = providerFor.apply(task);
+            String promptVersion = task.promptVersion();
+            String sourceHash = ContentHash.of(task.material(det)); // full-material identity (built locally)
+            java.util.List<Object> chunks = task.chunks(det, chunkSize);
             String tag = "[" + i + "/" + tasks.size() + "] " + task.name();
-            Ctx ctx = contextFor(task, det);
-            Optional<EnrichmentCache.Entry> hit = cache.read(ctx.sourceHash(), ctx.promptVersion());
-            if (hit.isPresent()) {
-                ArrayNode cached = task.validate(hit.get().data(), idx);
-                hits++;
-                totalItems += cached.size();
-                System.err.println("[kindexer] " + tag + ": " + cached.size()
-                        + " items (cache) via " + hit.get().model());
-                out.put(task.name(), new EnrichmentSection(ctx.sourceHash(), hit.get().model(), cached));
-                continue;
+            if (chunks.size() > 1) {
+                System.err.println("[kindexer] " + tag + ": " + chunks.size() + " chunks (endpoints split)");
             }
-            ArrayNode validated;
-            String model;
-            // Announce the call BEFORE it blocks — otherwise the API round-trip is dead air.
-            System.err.println("[kindexer] " + tag + ": requesting " + provider.modelId()
-                    + " (" + ctx.prompt().length() + " chars, ~" + (ctx.prompt().length() / 4) + " tok)…");
+            ArrayNode merged = Json.mapper().createArrayNode();
+            int rawTotal = 0;
+            String model = "none";
             long t0 = System.nanoTime();
-            try {
-                JsonNode raw = JsonExtract.firstArray(provider.complete(ctx.prompt()));
-                int rawCount = raw != null && raw.isArray() ? raw.size() : 0;
-                validated = task.validate(raw, idx);
-                model = provider.modelId();
-                cache.write(ctx.sourceHash(), ctx.promptVersion(), model, validated);
-                totalItems += validated.size();
-                int dropped = rawCount - validated.size();
-                System.err.println("[kindexer] " + tag + ": " + validated.size() + " items kept"
-                        + (dropped > 0 ? " (" + dropped + " dropped, unanchored)" : "")
-                        + " of " + rawCount + " raw via " + model + " (" + ms(t0) + "ms)");
-            } catch (Exception e) {
-                // LLM failure must not break generation — leave the section empty and continue.
-                validated = Json.mapper().createArrayNode();
-                model = "none";
-                System.err.println("[kindexer] " + tag + ": FAILED after " + ms(t0) + "ms — " + e.getMessage());
+            for (int c = 0; c < chunks.size(); c++) {
+                Object cm = chunks.get(c);
+                String chunkHash = ContentHash.of(cm);
+                String label = chunks.size() > 1 ? tag + " [chunk " + (c + 1) + "/" + chunks.size() + "]" : tag;
+                Optional<EnrichmentCache.Entry> hit = cache.read(chunkHash, promptVersion);
+                if (hit.isPresent()) {
+                    ArrayNode cached = task.validate(hit.get().data(), idx);
+                    merged.addAll(cached);
+                    hits++;
+                    model = hit.get().model();
+                    System.err.println("[kindexer] " + label + ": " + cached.size() + " items (cache) via " + model);
+                    continue;
+                }
+                String prompt = buildPrompt(task.instructions(), cm);
+                System.err.println("[kindexer] " + label + ": requesting " + provider.modelId()
+                        + " (~" + (prompt.length() / 4) + " tok)…");
+                long ct0 = System.nanoTime();
+                try {
+                    JsonNode raw = JsonExtract.firstArray(provider.complete(prompt));
+                    int rawCount = raw != null && raw.isArray() ? raw.size() : 0;
+                    rawTotal += rawCount;
+                    ArrayNode validated = task.validate(raw, idx);
+                    model = provider.modelId();
+                    cache.write(chunkHash, promptVersion, model, validated);
+                    merged.addAll(validated);
+                    System.err.println("[kindexer] " + label + ": " + validated.size() + " items kept of "
+                            + rawCount + " raw via " + model + " (" + ms(ct0) + "ms)");
+                } catch (Exception e) {
+                    // A chunk failure must not break the rest — leave it out and continue.
+                    System.err.println("[kindexer] " + label + ": FAILED after " + ms(ct0) + "ms — " + e.getMessage());
+                }
             }
-            out.put(task.name(), new EnrichmentSection(ctx.sourceHash(), model, validated));
+            totalItems += merged.size();
+            if (chunks.size() > 1) {
+                System.err.println("[kindexer] " + tag + ": " + merged.size() + " items merged from "
+                        + chunks.size() + " chunks (" + rawTotal + " raw, " + ms(t0) + "ms)");
+            }
+            out.put(task.name(), new EnrichmentSection(sourceHash, model, merged));
         }
         System.err.printf("[kindexer] enrichment done: %d items across %d task(s) (%d cache hit(s), %dms)%n",
                 totalItems, tasks.size(), hits, ms(runStart));
         return out;
+    }
+
+    private static String buildPrompt(String instructions, Object material) {
+        return instructions
+                + "\n\nMATERIAL (deterministic — do not invent anything beyond this):\n"
+                + writePretty(material)
+                + "\n\nReturn ONLY the JSON array described above.";
     }
 
     private static long ms(long startNanos) {
