@@ -188,15 +188,64 @@ public final class Tasks {
                 a diagram for only one of them — a lie. Keep it 1:1 so the diagram is faithful.
                 Reads are first-class: a GET is its own scenario (e.g. "Search products", "Get product
                 by id") with a read flow (controller → read repository → db), separate from the write.
-                GROUPING: put the business capability in "feature" (e.g. "Catalog · Brands"); the
-                renderer groups scenarios under it. So "feature" is the capability header, "scenario"
-                is the single flow — together they read like "Catalog · Brands › Create brand".
+                GROUPING: "feature" is the business CAPABILITY the flow belongs to — the area a
+                product owner would name on a board (a noun / domain area), NOT the specific action
+                and NOT "<Entity> · <verb>". The renderer groups every scenario under its feature, so
+                a feature is meant to COLLECT several related flows: the create / read / transition
+                flows of one capability roll up together and read as "<Capability> › <flow>". Litmus
+                test: if each scenario ends up with its own distinct feature, or a feature name reads
+                like a single verb on an entity, the grouping is too fine — merge it into the broader
+                capability it serves. Let the number of features fall out of the domain; do not aim
+                for any particular count (few or many are both fine if they reflect real capabilities).
+                VOICE: write the scenario title and given/when/then as a product owner describing
+                business behaviour and the value/intent of each step — not as a state machine. Prefer
+                the business meaning over the mechanics: name the actor when the flow makes it explicit
+                (e.g. the customer, an operator, the system), and say what an outcome enables when the
+                material shows a downstream effect (e.g. an event that starts another flow). Good:
+                "the customer's payment is confirmed and fulfilment can begin". Avoid the mechanical
+                register: "the status field is set to PAID".
+                GROUNDING: this richer wording MUST stay anchored to the provided material — never
+                invent actors, motives, fields, entities, or downstream effects that aren't in it.
+                These prose fields are NOT evidence-checked, so fabrication here slips through
+                unvalidated: describe the real facts more vividly, do not add fiction. If the material
+                doesn't show who acts or why, keep it neutral rather than guessing. In particular, do
+                NOT name an actor or recipient (customer, user, operator, agent, carrier, warehouse,
+                staff, …) unless that role literally appears in the material — the domain may have no
+                such role, and naming one is both invention and a domain assumption. When the subject
+                isn't in the material, use passive or neutral voice ("the order is cancelled", not
+                "the customer cancels the order"; "dispatched for delivery", not "on its way to the
+                customer").
+                EXAMPLES (register only — a neutral domain, do NOT copy it into your output):
+                  - The scenario TITLE is a behaviour, not a CRUD/HTTP verb:
+                    mechanical: "Get invoice by id" -> "Looking up an invoice by id"
+                    mechanical: "POST order"        -> "Placing an order"
+                  - Kill the state-machine register; say the business event, not the field write.
+                    mechanical: "the invoice transitions to ISSUED status" -> "the invoice is issued"
+                    mechanical: "the status field is set to CLOSED"         -> "the ticket is closed"
+                  - Add the consequence ONLY when the material actually shows one (an event handler,
+                    a published event, a triggered flow):
+                    grounded: "the subscription is activated, and the first billing cycle begins"
+                    — include the second clause only if a billing-cycle flow is really in the material.
+                  - No downstream effect in the material -> stop at the business event, invent nothing:
+                    "the request is approved"  (NOT "…, unlocking downstream access" when nothing shows it).
+                  - Do NOT name an actor/recipient absent from the material; use neutral/passive voice:
+                    invented: "the shipment is dispatched, on its way to the customer"
+                    grounded: "the shipment is dispatched for delivery"
+                    invented: "an operator confirms delivery"  ->  grounded: "delivery is confirmed"
+                  So: always upgrade the register (business verb, not "transitions to X status"); add
+                  intent/consequence only where the material backs it; where a step is just a status
+                  change with nothing more, a short business sentence is correct — do not pad it.
                 OUTPUT: a JSON array only. Each item:
-                  {"feature": <business capability / group header, e.g. "Catalog · Brands">,
-                   "scenario": <single-flow title, e.g. "Create brand", "Search brands">,
+                  {"feature": <business capability that groups several flows — a domain area, not a
+                               single action; e.g. "Catalog", "Fulfilment">,
+                   "scenario": <the single flow named as a business behaviour a product owner would
+                                recognize, e.g. "Placing an order", "Looking up an invoice",
+                                "Confirming payment" — NOT a CRUD/HTTP verb ("Get order", "POST invoice")>,
                    "given": <precondition, business language>,
-                   "when": <action>,
-                   "then": <outcome>,
+                   "when": <the business action — NEVER the HTTP method/path; e.g. "payment is
+                            received", not "POST /orders/{id}/pay is called">,
+                   "then": <business outcome, including its consequence/intent when the flow shows one
+                            (e.g. an event that triggers downstream work)>,
                    "type": one of ["happy-path","validation","edge-case","security","lifecycle"],
                    "priority": one of ["critical","high","medium"],
                    "verifiedBy": [<"TestClass#method">, ...],
@@ -225,6 +274,13 @@ public final class Tasks {
                     when the happy path AND the error/validation branches look tested, 'partial' when
                     some branches are, 'thin' when only the happy path (or nothing) is. 'untested' names
                     the real error/validation branches that appear to lack a test.
+                  - 'feature' MUST group related scenarios (see GROUPING). A feature used by only one
+                    scenario across the whole set is a smell — reconsider whether it belongs to a
+                    broader capability. Do not name a feature after a single verb/action.
+                  - 'when' is the business action, never the transport: do not echo the HTTP verb or
+                    path. Good: "the order is cancelled". Bad: "POST /orders/{id}/cancel is called".
+                  - A status change (one enum value → another, per the provided stateMachines) is a
+                    lifecycle flow: set "type":"lifecycle" (not "happy-path").
                   - Priority heuristic: money/fiscal/auth flows = critical.
                   - No prose outside the JSON array.""";
         }

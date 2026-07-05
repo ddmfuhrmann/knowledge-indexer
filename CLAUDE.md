@@ -51,10 +51,10 @@ list). Keep `EvidenceIndex.build` in sync if the artifact introduces new anchors
   same-named classes across modules (a modular monolith's per-module `XListener`) collide on
   class+method. Call-graph roots and the renderer's node lookup match on `file:line`; event entry-point
   ids use the **FQN** + payload.
-- **The enrichment cache is keyed by material hash only.** Changing a task's *instructions/schema*
-  still serves **stale** cached results. While iterating on a prompt, `rm -rf <repo>/.knowledge-index/cache`
-  before `assemble`, or the old output persists. (Roadmap **C** fixes this by adding a prompt version to
-  the key.)
+- **The enrichment cache is keyed by `(materialHash + promptVersion)`.** `promptVersion` is an
+  auto-derived hash of the task's `instructions()` (`EnrichmentTask.promptVersion()`), so editing a
+  task's instructions/schema invalidates only that task's entries — no more `rm -rf cache`. Cache
+  files are named `<materialHex>-<promptVersion>.json`. (Was Roadmap **C**, now shipped.)
 - **Render Mermaid in a single `mermaid.run` batch.** Concurrent per-element runs leave stray
   measuring SVGs that overlap other sections. Use `MermaidSafe.id`/`.label` for every identifier/label.
 - **Entry points come from `src/main` only** (test sources are excluded); the call graph/entities may

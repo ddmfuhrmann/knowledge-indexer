@@ -84,16 +84,18 @@ box. Deterministic vs LLM items are badged; evidence is in a tooltip.
   (single-module) and `spring-petclinic-microservices` (8 modules) with zero configuration.
 - **Enrichment provider is pluggable.** Default `agent` = a file handoff where **Claude Code is the
   LLM** (no API key). `sdk` = a thin `java.net.http` client for the Anthropic Messages API
-  (`ANTHROPIC_API_KEY`) — same prompts, for headless/CI. Both share the cache + evidence validator.
-  See [docs/providers.md](docs/providers.md) for models, the (planned) multi-vendor / local landscape,
-  and how to pick one.
+  (`ANTHROPIC_API_KEY`) — same prompts, for headless/CI; default model `claude-haiku-4-5`, thinking
+  off, `max_tokens` 16000 (`--max-tokens`), model-aware `--thinking`/`--effort`, per-task routing
+  (`--task-model`), and retry-with-backoff on 429/5xx. Both share the cache + evidence validator.
+  See [docs/providers.md](docs/providers.md) for the provider surface and
+  [docs/anthropic_benchmark.md](docs/anthropic_benchmark.md) for the model cost × quality benchmark.
 - **Canonical JSON** (Jackson, alphabetically sorted keys) for both hashing and on-disk files.
 
 ## Layout
 
 ```
 src/main/java/.../kindex/
-  Cli.java                 commands: run | extract | assemble  (--out --no-llm --provider --model --exclude)
+  Cli.java                 commands: run | extract | assemble  (--out --no-llm --provider --model --max-tokens --exclude)
   ast/ProjectModel.java    parse working tree with shared symbol solver (multi-module discovery)
   git/GitInfo.java         HEAD hash + commit time + commit message (deterministic generatedAt)
   extract/                 DETERMINISTIC extractors:
@@ -127,8 +129,12 @@ $BIN extract <repo> --out out/
 #   ...write out/enrich/responses/<task>.json per each request's schema (evidence required)...
 $BIN assemble <repo> --out out/
 
-# headless enrichment via the Anthropic API:
-ANTHROPIC_API_KEY=… $BIN run <repo> --provider sdk --model claude-sonnet-5 --out out/
+# headless enrichment via the Anthropic API (default model claude-haiku-4-5, retry on 429/5xx):
+ANTHROPIC_API_KEY=… $BIN run <repo> --provider sdk --out out/
+#   ...bump the per-call output budget for a large repo: --max-tokens 32000
+#   ...enable/deepen model reasoning (model-aware): --thinking on  /  --effort low..max
+#   ...richer business voice on the use cases (deliverable): --task-model behaviors=claude-sonnet-5 --effort low
+#   ...model × cost × quality trade-offs: docs/anthropic_benchmark.md
 
 # prune a nested/vendored project (e.g. when the tool lives inside the target repo):
 $BIN run <repo> --no-llm --exclude .skills --out out/

@@ -25,13 +25,18 @@ The payoff of the deterministic layer: a browsable, diffable history of runs.
 - The enrichment cache is already content-addressed, so re-running old commits reuses
   interpretations where the deterministic material is unchanged.
 
-### 2. Real Anthropic SDK integration — [planned]
-Exercise the `--provider sdk` path live (built but never run against the API).
-- Set `ANTHROPIC_API_KEY`, run `run <repo> --provider sdk --model <model>`.
-- **Validate:** the model returns parseable JSON (fenced output handled by `JsonExtract`),
-  `max_tokens` is sufficient, rate-limit/retry behaviour, and that evidence validation keeps a
-  reasonable share of items.
-- Depends on **A (scale enrichment)** to hold up on large repos.
+### 2. Real Anthropic SDK integration — [shipped]
+The `--provider sdk` path is hardened for real runs, not just built:
+- ✅ `thinking` explicitly **disabled** so the whole `max_tokens` budget goes to the JSON array
+  (recent models otherwise run adaptive thinking by default and silently truncate the output).
+- ✅ `max_tokens` raised to 16000 (was 4096) and made tunable via `--max-tokens N`; a
+  `stop_reason=max_tokens` is surfaced as a warning so truncation is never masked.
+- ✅ Transient failures (429/5xx/529, I/O/timeout) retried with exponential backoff honouring
+  `retry-after`; non-retryable statuses throw.
+- ✅ Per-task **keep-rate** logged (`<task>: <kept> itens (raw <n>) via <model>`) so a weak or failed
+  run is visible instead of a silently empty section.
+- Still open: **A (scale enrichment)** for large repos, and a live run against `spring-petclinic`
+  with a real `ANTHROPIC_API_KEY` (hardening verified offline via an `ANTHROPIC_BASE_URL` stub).
 
 ### 3. Multi-vendor & local LLM providers — [planned]
 The enrichment provider is already pluggable (`agent` + `sdk` = Anthropic Messages API). Add more
@@ -65,10 +70,12 @@ Symbol resolution is per-call; thousands of files can get slow.
 - Add a `JarTypeSolver` fed by the target's dependency jars — resolves more edges *and* is faster.
 - Incremental mode: only re-parse files changed since the last recorded commit.
 
-### C. Cache keyed by prompt version — [planned] ⚠️ correctness fix
-The enrichment cache is currently keyed only by `hash(material)`. Changing a task's instructions or
-schema still serves **stale** cached results. Key the cache by `(materialHash + promptVersion)` so a
-prompt/schema change invalidates the relevant entries.
+### C. Cache keyed by prompt version — [shipped] ⚠️ correctness fix
+The enrichment cache is now keyed by `(materialHash + promptVersion)`, where `promptVersion` is a
+short auto-derived hash of the task's `instructions()` (`EnrichmentTask.promptVersion()`). Editing a
+task's instructions/schema invalidates only that task's entries — no manual bump, no `rm -rf cache`.
+Cache files are named `<materialHex>-<promptVersion>.json`. The manifest's `sourceHash` still tracks
+material identity only, so the determinism proof is unchanged.
 
 ### D. Packaging & distribution — [in progress]
 Run against any repo without cloning another.
