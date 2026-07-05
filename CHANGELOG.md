@@ -8,6 +8,53 @@ everything below the foundation is under **Unreleased**.
 ## [Unreleased]
 
 ### Added
+- **Hardened `--provider sdk` (Anthropic Messages API) for real runs** — `thinking` disabled so the
+  whole `max_tokens` budget goes to the JSON; `max_tokens` raised 4096 → 16000 and tunable via
+  `--max-tokens N`; retry-with-exponential-backoff on 429/5xx/529/I·O honouring `retry-after`; a
+  `stop_reason=max_tokens` warning; and per-task keep-rate logging so a weak/failed run is visible
+  instead of a silently empty section. (ROADMAP 2)
+- **Per-call token + estimated-cost logging** — each `--provider sdk` call logs the response `usage`
+  (`in N, out N` tokens, plus cache read/write when non-zero) and an **estimated** USD cost from
+  indicative list prices; a run-total `estimated spend` line sums across models. Tokens are exact
+  (straight from the API); the `$` is marked estimated and may drift from list prices. The Anthropic
+  console only shows aggregated usage/cost, so this is the per-call view.
+- **Model benchmark + default is now `claude-haiku-4-5`** — a 13-cell cost × quality matrix
+  ({haiku,sonnet,opus} × {off,low,medium,high} + fable) documented in
+  [docs/anthropic_benchmark.md](docs/anthropic_benchmark.md), reproducible via
+  `scripts/benchmark-matrix.sh` + `scripts/benchmark-report.py`. Finding: after the `behaviors`
+  prompt tuning, Haiku matches the bigger models on structural quality at ~1/3 the cost and with zero
+  ungrounded invention, so it is the shipped default (`Cli.DEFAULT_MODEL`, was `claude-sonnet-5`);
+  effort is not a useful lever for this task, and Opus/Fable invent an actor the evidence gate can't
+  drop. Route `behaviors` to Sonnet for a richer voice on a deliverable.
+- **`behaviors` prompt tuned for business-facing use cases** — count-free feature grouping (semantic
+  litmus test, not a magic number), `lifecycle` typing for status transitions, no HTTP verb in
+  `when`, and a business VOICE with a hard GROUNDING rule (state consequences the material shows;
+  never name an actor/recipient absent from it — the prose fields are not evidence-gated).
+- **Reasoning depth (`--effort`)** — `--effort low|medium|high|xhigh|max` (implies `--thinking on`)
+  tunes reasoning depth, model-aware: `output_config.effort` on modern models (Sonnet/Opus/Fable),
+  mapped to `budget_tokens` on extended-thinking models (Haiku 4.5). Lets a capable model at low
+  effort compete with a cheaper model at high effort. Fable is handled as always-on (no `disabled`).
+- **Configurable, model-aware thinking** — `--thinking on` enables model reasoning for `--provider sdk`
+  (default off). The config adapts to the model: adaptive thinking for modern models (Sonnet 4.6+/5,
+  Opus 4.6+, Fable) and extended thinking with a `budget_tokens` below `max_tokens` for older ones
+  (Haiku 4.5, Sonnet 4.5, 3.x). Reasoning is what recovers business framing in the BDD use cases —
+  with thinking off, even Opus restates the HTTP endpoint in the `when`; with it on, a cheap Haiku 4.5
+  can beat a larger thinking-off model.
+- **Per-task model routing** — `--task-model <task>=<model>` (repeatable) routes a single enrichment
+  task to a different model than `--model`, e.g. `--task-model behaviors=claude-opus-4-8` for the
+  interpretive use-case task while keeping the mechanical tasks on the cheaper default. The provider
+  is resolved per task (one `HttpAnthropicProvider` cached per distinct model).
+- **Progress logging** so a run is no longer dead air: the deterministic phase reports parse time, a
+  "building call graph" marker, and a counts summary (entities / entry points / nodes / edges / tests
+  / event flows + total ms); the enrichment phase announces each call **before** it blocks
+  (`[i/n] <task>: requesting <model> (<chars>, ~<tok>)…`), then reports items kept vs dropped and the
+  elapsed ms per task, plus a final `enrichment done: <items> across <n> task(s) (<hits> cache hit(s), <ms>)`.
+  All on stderr — artifacts (and the determinism proof) are unaffected.
+- **Enrichment cache keyed by `(materialHash + promptVersion)`** — `promptVersion` is an auto-derived
+  hash of each task's `instructions()`; editing a task's prompt/schema now invalidates only that
+  task's cache entries (no manual bump, no `rm -rf cache`). Cache files: `<materialHex>-<promptVersion>.json`.
+  The manifest's `sourceHash` still tracks material identity only, so the determinism proof is unchanged.
+  (ROADMAP C)
 - **Event/message consumers as entry points** — in-process Spring events, Spring Modulith
   `@ApplicationModuleListener`, `@TransactionalEventListener`, Kafka/Rabbit/JMS/SQS listeners and
   functional `Consumer`/`Function` beans. Each becomes a use-case card with its own sequence diagram
