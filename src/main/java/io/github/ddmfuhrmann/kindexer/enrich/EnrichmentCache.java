@@ -11,9 +11,10 @@ import java.util.Optional;
 
 /**
  * Content-addressed enrichment cache. Keyed by the {@code sourceHash} of the deterministic material
- * that produced an interpretation, so re-running against unchanged code reuses the stored result
- * and never re-consults the LLM. Committing this directory makes an enrichment run reproducible
- * offline (the recorded-cache demo path).
+ * <em>and</em> the task's {@code promptVersion} (a hash of its instructions), so re-running against
+ * unchanged code and an unchanged prompt reuses the stored result and never re-consults the LLM —
+ * but editing a task's instructions invalidates only that task's entries. Committing this directory
+ * makes an enrichment run reproducible offline (the recorded-cache demo path).
  */
 public final class EnrichmentCache {
 
@@ -26,8 +27,8 @@ public final class EnrichmentCache {
     /** A cached interpretation: who produced it and the validated data array. */
     public record Entry(String model, JsonNode data) {}
 
-    public Optional<Entry> read(String sourceHash) {
-        Path file = fileFor(sourceHash);
+    public Optional<Entry> read(String sourceHash, String promptVersion) {
+        Path file = fileFor(sourceHash, promptVersion);
         if (!Files.isRegularFile(file)) {
             return Optional.empty();
         }
@@ -41,21 +42,22 @@ public final class EnrichmentCache {
         }
     }
 
-    public void write(String sourceHash, String model, JsonNode data) {
+    public void write(String sourceHash, String promptVersion, String model, JsonNode data) {
         try {
             Files.createDirectories(dir);
             ObjectNode root = Json.mapper().createObjectNode();
             root.put("sourceHash", sourceHash);
+            root.put("promptVersion", promptVersion);
             root.put("model", model);
             root.set("data", data);
-            Files.writeString(fileFor(sourceHash), Json.pretty().writeValueAsString(root) + "\n");
+            Files.writeString(fileFor(sourceHash, promptVersion), Json.pretty().writeValueAsString(root) + "\n");
         } catch (IOException e) {
             // Cache is an optimization; a write failure must not break generation.
         }
     }
 
-    private Path fileFor(String sourceHash) {
+    private Path fileFor(String sourceHash, String promptVersion) {
         String key = sourceHash.startsWith("sha256:") ? sourceHash.substring(7) : sourceHash;
-        return dir.resolve(key + ".json");
+        return dir.resolve(key + "-" + promptVersion + ".json");
     }
 }

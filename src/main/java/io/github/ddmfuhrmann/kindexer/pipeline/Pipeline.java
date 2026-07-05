@@ -41,9 +41,14 @@ public final class Pipeline {
 
     /** {@code excludeDirs} prunes nested/vendored directory names from source discovery. */
     public Deterministic extract(Path repoRoot, java.util.Set<String> excludeDirs) {
+        long t0 = System.nanoTime();
         ProjectModel project = ProjectModel.parse(repoRoot, excludeDirs);
+        System.err.println("[kindexer] parsed working tree in " + ms(t0) + "ms; running extractors…");
+
         var entities = new EntityExtractor().extract(project);
         var entryPoints = new EntryPointExtractor().extract(project);
+        // Call graph + state machines are the heavy pass; flag it so a long silence is explained.
+        System.err.println("[kindexer] building call graph from " + entryPoints.size() + " entry point(s)…");
         CallGraph callGraph = new CallGraphExtractor().extract(project, entryPoints);
         var stateMachines = new StateMachineExtractor().extract(project, callGraph);
         var tests = new TestScenarioExtractor().extract(project);
@@ -54,8 +59,19 @@ public final class Pipeline {
         var inputConstraints = new InputConstraintExtractor().extract(project, entryPoints);
         var guardChecks = new GuardExtractor().extract(project);
         var eventFlows = new EventFlowExtractor().extract(project, entryPoints);
+
+        System.err.printf(
+                "[kindexer] deterministic layer: %d entities, %d entry points, %d nodes, %d edges, "
+                        + "%d tests, %d event flows (%dms total)%n",
+                entities.size(), entryPoints.size(), callGraph.nodes().size(), callGraph.edges().size(),
+                tests.size(), eventFlows.size(), ms(t0));
+
         return new Deterministic(entities, entryPoints, callGraph, stateMachines, tests, migrations,
                 throwSites, exceptionStatuses, inputConstraints, guardChecks, eventFlows);
+    }
+
+    private static long ms(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
     }
 
     /** Each artifact carries the content hash of its own data — the enrichment cache key upstream. */

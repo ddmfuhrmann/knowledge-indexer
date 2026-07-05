@@ -26,8 +26,8 @@ public final class Enricher {
 
     private final List<EnrichmentTask> tasks = Tasks.all();
 
-    /** One task's resolved context: its anchored material, cache key and full prompt. */
-    private record Ctx(EnrichmentTask task, Object material, String sourceHash, String prompt) {}
+    /** One task's resolved context: its anchored material, cache key, prompt version and full prompt. */
+    private record Ctx(EnrichmentTask task, Object material, String sourceHash, String promptVersion, String prompt) {}
 
     private Ctx contextFor(EnrichmentTask task, Deterministic det) {
         Object material = task.material(det);
@@ -36,7 +36,7 @@ public final class Enricher {
                 + "\n\nMATERIAL (deterministic — do not invent anything beyond this):\n"
                 + writePretty(material)
                 + "\n\nReturn ONLY the JSON array described above.";
-        return new Ctx(task, material, hash, prompt);
+        return new Ctx(task, material, hash, task.promptVersion(), prompt);
     }
 
     /** {@code --no-llm}: every section present but empty, still keyed by its sourceHash. */
@@ -60,7 +60,7 @@ public final class Enricher {
         java.util.Map<String, EnrichmentSection> out = new TreeMap<>();
         for (EnrichmentTask task : tasks) {
             Ctx ctx = contextFor(task, det);
-            Optional<EnrichmentCache.Entry> hit = cache.read(ctx.sourceHash());
+            Optional<EnrichmentCache.Entry> hit = cache.read(ctx.sourceHash(), ctx.promptVersion());
             if (hit.isPresent()) {
                 out.put(task.name(), new EnrichmentSection(ctx.sourceHash(), hit.get().model(),
                         task.validate(hit.get().data(), idx)));
@@ -83,7 +83,7 @@ public final class Enricher {
         java.util.Map<String, EnrichmentSection> out = new TreeMap<>();
         for (EnrichmentTask task : tasks) {
             Ctx ctx = contextFor(task, det);
-            Optional<EnrichmentCache.Entry> hit = cache.read(ctx.sourceHash());
+            Optional<EnrichmentCache.Entry> hit = cache.read(ctx.sourceHash(), ctx.promptVersion());
             if (hit.isPresent()) {
                 out.put(task.name(), new EnrichmentSection(ctx.sourceHash(), hit.get().model(),
                         task.validate(hit.get().data(), idx)));
@@ -95,7 +95,7 @@ public final class Enricher {
                 continue;
             }
             ArrayNode validated = task.validate(raw, idx);
-            cache.write(ctx.sourceHash(), "agent:claude-code", validated);
+            cache.write(ctx.sourceHash(), ctx.promptVersion(), "agent:claude-code", validated);
             out.put(task.name(), new EnrichmentSection(ctx.sourceHash(), "agent:claude-code", validated));
         }
         return out;
@@ -103,33 +103,70 @@ public final class Enricher {
 
     /** Headless {@code --provider sdk}: cache-or-call, validate, cache, all in one pass. */
     public java.util.Map<String, EnrichmentSection> runWithProvider(Deterministic det, Path repoRoot, EnrichmentProvider provider) {
+        return runWithProvider(det, repoRoot, task -> provider);
+    }
+
+    /**
+     * Same as above, but the provider is resolved per task — so a single run can route different
+     * tasks to different models (e.g. the interpretive {@code behaviors} task to a stronger model).
+     */
+    public java.util.Map<String, EnrichmentSection> runWithProvider(
+            Deterministic det, Path repoRoot, java.util.function.Function<EnrichmentTask, EnrichmentProvider> providerFor) {
         EnrichmentCache cache = new EnrichmentCache(repoRoot);
         EvidenceIndex idx = det.evidenceIndex();
         java.util.Map<String, EnrichmentSection> out = new TreeMap<>();
+        long runStart = System.nanoTime();
+        int totalItems = 0;
+        int hits = 0;
+        int i = 0;
+        System.err.println("[kindexer] enrichment: " + tasks.size() + " task(s)");
         for (EnrichmentTask task : tasks) {
+            i++;
+            EnrichmentProvider provider = providerFor.apply(task);
+            String tag = "[" + i + "/" + tasks.size() + "] " + task.name();
             Ctx ctx = contextFor(task, det);
-            Optional<EnrichmentCache.Entry> hit = cache.read(ctx.sourceHash());
+            Optional<EnrichmentCache.Entry> hit = cache.read(ctx.sourceHash(), ctx.promptVersion());
             if (hit.isPresent()) {
-                out.put(task.name(), new EnrichmentSection(ctx.sourceHash(), hit.get().model(),
-                        task.validate(hit.get().data(), idx)));
+                ArrayNode cached = task.validate(hit.get().data(), idx);
+                hits++;
+                totalItems += cached.size();
+                System.err.println("[kindexer] " + tag + ": " + cached.size()
+                        + " items (cache) via " + hit.get().model());
+                out.put(task.name(), new EnrichmentSection(ctx.sourceHash(), hit.get().model(), cached));
                 continue;
             }
             ArrayNode validated;
             String model;
+            // Announce the call BEFORE it blocks — otherwise the API round-trip is dead air.
+            System.err.println("[kindexer] " + tag + ": requesting " + provider.modelId()
+                    + " (" + ctx.prompt().length() + " chars, ~" + (ctx.prompt().length() / 4) + " tok)…");
+            long t0 = System.nanoTime();
             try {
                 JsonNode raw = JsonExtract.firstArray(provider.complete(ctx.prompt()));
+                int rawCount = raw != null && raw.isArray() ? raw.size() : 0;
                 validated = task.validate(raw, idx);
                 model = provider.modelId();
-                cache.write(ctx.sourceHash(), model, validated);
+                cache.write(ctx.sourceHash(), ctx.promptVersion(), model, validated);
+                totalItems += validated.size();
+                int dropped = rawCount - validated.size();
+                System.err.println("[kindexer] " + tag + ": " + validated.size() + " items kept"
+                        + (dropped > 0 ? " (" + dropped + " dropped, unanchored)" : "")
+                        + " of " + rawCount + " raw via " + model + " (" + ms(t0) + "ms)");
             } catch (Exception e) {
                 // LLM failure must not break generation — leave the section empty and continue.
                 validated = Json.mapper().createArrayNode();
                 model = "none";
-                System.err.println("[kindexer] enrichment '" + task.name() + "' failed: " + e.getMessage());
+                System.err.println("[kindexer] " + tag + ": FAILED after " + ms(t0) + "ms — " + e.getMessage());
             }
             out.put(task.name(), new EnrichmentSection(ctx.sourceHash(), model, validated));
         }
+        System.err.printf("[kindexer] enrichment done: %d items across %d task(s) (%d cache hit(s), %dms)%n",
+                totalItems, tasks.size(), hits, ms(runStart));
         return out;
+    }
+
+    private static long ms(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
     }
 
     private void writeRequest(Path reqDir, Ctx ctx) {
