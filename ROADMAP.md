@@ -63,11 +63,14 @@ Run against any repo without cloning another.
 ## Risks
 
 ### E. Framework & language coverage — [risk]
-Current support: **Spring MVC / REST + JPA**. Intentionally the only target for now. Out of scope
-until re-prioritized, tracked here so it isn't a surprise on a new codebase:
+Current support: **Spring MVC / REST + JPA**, plus **event/message consumers** — in-process Spring
+events, Spring Modulith `@ApplicationModuleListener`, Kafka/Rabbit/JMS/SQS listeners, and functional
+`Consumer`/`Function` beans (with a producer→event→consumer choreography graph). Out of scope until
+re-prioritized, tracked here so it isn't a surprise on a new codebase:
 - **Kotlin sources are invisible** (JavaParser is Java-only) — the biggest gap for mixed codebases.
 - Spring **WebFlux** (reactive), **JAX-RS**, **Micronaut**, **Quarkus**, **gRPC / GraphQL** entry
-  points are not detected.
+  points are not detected (the use-case view already groups by entry-point category, so these slot in
+  once their extractors exist).
 - Non-standard validation/guard styles beyond what the guard extractor recognizes.
 - **Mitigation:** run new targets in `--no-llm` first to measure size/perf and surface unmapped
   surface area before investing.
@@ -100,6 +103,16 @@ standalone `.mmd` diagram files, in addition to the HTML.
 - Golden-fixture tests for the extractors; a determinism check in CI.
 - **Headless Mermaid validation** — today diagram syntax is only sanitized statically, never rendered
   to confirm it parses (this was in the original spec and is still only partially done).
+
+### L. Deep links to source — [idea]
+Make the index a navigable entry point into the code, not just a description. Every node, entry point,
+listener, test, throw site and assignment already carries a deterministic `file:line`, so:
+- Link class/method names (use-case endpoints, sequence participants, `verifiedBy` tests, choreography
+  producers/consumers, ER entities) to the source **at the run's commit**.
+- Resolve the target from git: a GitHub/GitLab **blob URL** (`.../blob/<commit>/<file>#L<line>`) when
+  an `origin` remote is known; otherwise local `file://` or editor deep-links (`vscode://file/…:line`).
+- Keep it deterministic and optional — a `--repo-url <base>` override for hosts that can't be inferred,
+  and graceful omission (plain text) when no location resolves.
 
 ---
 
