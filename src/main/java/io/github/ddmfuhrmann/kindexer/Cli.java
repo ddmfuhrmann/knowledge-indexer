@@ -18,7 +18,7 @@ import java.util.function.Function;
 /**
  * Entry point. Three commands:
  * <pre>
- *   run &lt;repo&gt; [--out DIR] [--no-llm | --provider sdk [--model M] [--max-tokens N] [--thinking on] [--effort LVL] [--task-model T=M]...]   one-shot (CI, determinism, sdk)
+ *   run &lt;repo&gt; [--out DIR] [--no-llm | --provider sdk [--model M] [--max-tokens N] [--thinking on] [--effort LVL] [--behaviors-chunk N] [--task-model T=M]...]   one-shot (CI, determinism, sdk)
  *   extract &lt;repo&gt; [--out DIR]                                       agent phase 1: emit enrich requests
  *   assemble &lt;repo&gt; [--out DIR]                                      agent phase 2: fold in responses
  * </pre>
@@ -109,7 +109,7 @@ public final class Cli {
                 String model = opt.taskModels.getOrDefault(task.name(), opt.model);
                 return byModel.computeIfAbsent(model, m -> new HttpAnthropicProvider(m, opt.maxTokens, opt.thinking, opt.effort));
             };
-            var result = enricher.runWithProvider(det, repo, providerFor);
+            var result = enricher.runWithProvider(det, repo, providerFor, opt.behaviorsChunk);
             reportSpend(byModel);
             return result;
         }
@@ -144,7 +144,7 @@ public final class Cli {
                 knowledge-index — deterministic Spring Boot knowledge extractor + LLM enrichment
 
                 Usage:
-                  run <repo> [--out DIR] [--no-llm | --provider sdk [--model M] [--max-tokens N] [--thinking on] [--effort LVL] [--task-model T=M]...]
+                  run <repo> [--out DIR] [--no-llm | --provider sdk [--model M] [--max-tokens N] [--thinking on] [--effort LVL] [--behaviors-chunk N] [--task-model T=M]...]
                   extract <repo> [--out DIR]     emit enrichment requests (agent phase 1)
                   assemble <repo> [--out DIR]    fold in agent responses (agent phase 2)
 
@@ -158,6 +158,8 @@ public final class Cli {
                                    adaptive for modern models, extended (budget) for Haiku 4.5
                   --effort LVL     reasoning depth: low|medium|high|xhigh|max (implies --thinking on);
                                    output_config.effort on modern models, budget_tokens on Haiku 4.5
+                  --behaviors-chunk N  cap endpoints per behaviors prompt; default auto-sizes chunks by
+                                   material size so a large repo doesn't blow the token budget/timeout
                   --task-model T=M route one enrichment task to a specific model (repeatable),
                                    e.g. --task-model behaviors=claude-opus-4-8
                   --exclude a,b    directory names to prune (nested/vendored projects), e.g. --exclude .skills
@@ -175,6 +177,7 @@ public final class Cli {
         int maxTokens = HttpAnthropicProvider.DEFAULT_MAX_TOKENS;
         boolean thinking = false;
         String effort; // null = model default
+        int behaviorsChunk = Enricher.DEFAULT_CHUNK;
         Map<String, String> taskModels = new java.util.LinkedHashMap<>();
         java.util.Set<String> exclude = new java.util.LinkedHashSet<>();
 
@@ -210,6 +213,17 @@ public final class Cli {
                             o.thinking = true; // effort implies reasoning on
                         } else {
                             System.err.println("[kindexer] invalid --effort: " + v + " (expected low|medium|high|xhigh|max)");
+                        }
+                    }
+                    case "--behaviors-chunk" -> {
+                        String v = next(args, ++i);
+                        if (v != null) {
+                            try {
+                                o.behaviorsChunk = Integer.parseInt(v.trim());
+                            } catch (NumberFormatException e) {
+                                System.err.println("[kindexer] invalid --behaviors-chunk: " + v + " (using "
+                                        + o.behaviorsChunk + ")");
+                            }
                         }
                     }
                     case "--task-model" -> {

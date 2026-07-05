@@ -18,6 +18,18 @@ public interface EnrichmentTask {
     /** The deterministic subset this task interprets — serialized into the prompt and hashed. */
     Object material(Deterministic det);
 
+    /**
+     * Split {@link #material(Deterministic)} into independently-promptable chunks so a large repo
+     * doesn't send one megaprompt (which blows the token budget and the request timeout). Each chunk
+     * is prompted, cached and validated on its own; the results are merged. The default is a single
+     * chunk (the whole material) — only tasks whose material scales with the codebase (the per-entry
+     * point {@code behaviors} task) override this. {@code chunkSize} bounds a chunk; {@code <= 0} or a
+     * material below the bound stays a single chunk.
+     */
+    default java.util.List<Object> chunks(Deterministic det, int chunkSize) {
+        return java.util.List.of(material(det));
+    }
+
     /** Task description + exact output schema + the evidence rule, handed to the model. */
     String instructions();
 
