@@ -1,7 +1,7 @@
 {
   "artifacts" : {
     "callGraph" : {
-      "contentHash" : "sha256:7c8dbe93ede10642c2b958007b73b08a308b45c69810781ebb9adc1643745a35",
+      "contentHash" : "sha256:ecf6fdcb37ed0d6f27ee83c59e74a1fe2afa9c676d221ad53e4980904739da7d",
       "data" : {
         "assignmentSites" : [ ],
         "edges" : [
@@ -44,6 +44,12 @@
           {
             "file" : "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
             "from" : "org.springframework.samples.petclinic.owner.OwnerController#processCreationForm",
+            "line" : 84,
+            "to" : "external:OwnerRepository#save"
+          },
+          {
+            "file" : "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
+            "from" : "org.springframework.samples.petclinic.owner.OwnerController#processCreationForm",
             "line" : 86,
             "to" : "org.springframework.samples.petclinic.model.BaseEntity#getId"
           },
@@ -74,6 +80,12 @@
           {
             "file" : "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
             "from" : "org.springframework.samples.petclinic.owner.OwnerController#processUpdateOwnerForm",
+            "line" : 156,
+            "to" : "external:OwnerRepository#save"
+          },
+          {
+            "file" : "src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java",
+            "from" : "org.springframework.samples.petclinic.owner.OwnerController#processUpdateOwnerForm",
             "line" : 149,
             "to" : "org.springframework.samples.petclinic.model.BaseEntity#getId"
           },
@@ -100,6 +112,12 @@
             "from" : "org.springframework.samples.petclinic.owner.PetController#initCreationForm",
             "line" : 102,
             "to" : "org.springframework.samples.petclinic.owner.Owner#addPet"
+          },
+          {
+            "file" : "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
+            "from" : "org.springframework.samples.petclinic.owner.PetController#processCreationForm",
+            "line" : 124,
+            "to" : "external:OwnerRepository#save"
           },
           {
             "file" : "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
@@ -164,6 +182,12 @@
           {
             "file" : "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
             "from" : "org.springframework.samples.petclinic.owner.PetController#updatePetDetails",
+            "line" : 180,
+            "to" : "external:OwnerRepository#save"
+          },
+          {
+            "file" : "src/main/java/org/springframework/samples/petclinic/owner/PetController.java",
+            "from" : "org.springframework.samples.petclinic.owner.PetController#updatePetDetails",
             "line" : 168,
             "to" : "org.springframework.samples.petclinic.model.BaseEntity#getId"
           },
@@ -218,6 +242,12 @@
           {
             "file" : "src/main/java/org/springframework/samples/petclinic/owner/VisitController.java",
             "from" : "org.springframework.samples.petclinic.owner.VisitController#processNewVisitForm",
+            "line" : 109,
+            "to" : "external:OwnerRepository#save"
+          },
+          {
+            "file" : "src/main/java/org/springframework/samples/petclinic/owner/VisitController.java",
+            "from" : "org.springframework.samples.petclinic.owner.VisitController#processNewVisitForm",
             "line" : 108,
             "to" : "org.springframework.samples.petclinic.owner.Owner#addVisit"
           },
@@ -259,6 +289,15 @@
           }
         ],
         "nodes" : [
+          {
+            "className" : "OwnerRepository",
+            "file" : "",
+            "id" : "external:OwnerRepository#save",
+            "line" : 0,
+            "method" : "save",
+            "returnType" : "",
+            "role" : "external"
+          },
           {
             "className" : "BaseEntity",
             "file" : "src/main/java/org/springframework/samples/petclinic/model/BaseEntity.java",
@@ -887,9 +926,10 @@
       ]
     },
     "entryPoints" : {
-      "contentHash" : "sha256:d3a0408db52336d4974929430034cb9e5c4dd1a58a7b3a4e060199db44006b0c",
+      "contentHash" : "sha256:dfbe45b3fe0a0b20403e1899c87d4f0fdde048c607281f97bbda45c30e92d191",
       "data" : [
         {
+          "async" : false,
           "category" : "http",
           "className" : "WelcomeController",
           "cron" : null,
@@ -902,6 +942,7 @@
           "path" : "/"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "CrashController",
           "cron" : null,
@@ -914,6 +955,7 @@
           "path" : "/oups"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OwnerController",
           "cron" : null,
@@ -926,6 +968,7 @@
           "path" : "/owners"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OwnerController",
           "cron" : null,
@@ -938,6 +981,7 @@
           "path" : "/owners/find"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OwnerController",
           "cron" : null,
@@ -950,6 +994,7 @@
           "path" : "/owners/new"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OwnerController",
           "cron" : null,
@@ -962,6 +1007,7 @@
           "path" : "/owners/{ownerId}"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OwnerController",
           "cron" : null,
@@ -974,6 +1020,7 @@
           "path" : "/owners/{ownerId}/edit"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "PetController",
           "cron" : null,
@@ -986,6 +1033,7 @@
           "path" : "/owners/{ownerId}/pets/new"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "PetController",
           "cron" : null,
@@ -998,6 +1046,7 @@
           "path" : "/owners/{ownerId}/pets/{petId}/edit"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "VisitController",
           "cron" : null,
@@ -1010,6 +1059,7 @@
           "path" : "/owners/{ownerId}/pets/{petId}/visits/new"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "VetController",
           "cron" : null,
@@ -1022,6 +1072,7 @@
           "path" : "/vets"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "VetController",
           "cron" : null,
@@ -1034,6 +1085,7 @@
           "path" : "/vets.html"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OwnerController",
           "cron" : null,
@@ -1046,6 +1098,7 @@
           "path" : "/owners/new"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "OwnerController",
           "cron" : null,
@@ -1058,6 +1111,7 @@
           "path" : "/owners/{ownerId}/edit"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "PetController",
           "cron" : null,
@@ -1070,6 +1124,7 @@
           "path" : "/owners/{ownerId}/pets/new"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "PetController",
           "cron" : null,
@@ -1082,6 +1137,7 @@
           "path" : "/owners/{ownerId}/pets/{petId}/edit"
         },
         {
+          "async" : false,
           "category" : "http",
           "className" : "VisitController",
           "cron" : null,
@@ -1094,6 +1150,10 @@
           "path" : "/owners/{ownerId}/pets/{petId}/visits/new"
         }
       ]
+    },
+    "eventFlows" : {
+      "contentHash" : "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "data" : [ ]
     },
     "exceptionStatuses" : {
       "contentHash" : "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
@@ -1839,41 +1899,40 @@
     "behaviors" : {
       "data" : [
         {
-          "feature" : "Owner Management",
-          "scenario" : "Register a new pet owner",
-          "given" : "a clinic staffer with a new owner's details",
-          "when" : "the new-owner form is submitted",
-          "then" : "the owner is created and its detail page is shown",
+          "feature" : "Site",
+          "scenario" : "Show the welcome page",
+          "given" : "a visitor opens the clinic site",
+          "when" : "they GET /",
+          "then" : "the welcome page is rendered",
           "type" : "happy-path",
-          "priority" : "high",
-          "verifiedBy" : [
-            "OwnerControllerTests#processCreationFormSuccess",
-            "ClinicServiceTests#shouldInsertOwner"
-          ],
-          "gap" : false,
+          "priority" : "medium",
+          "verifiedBy" : [ ],
+          "gap" : true,
           "coverage" : {
-            "level" : "full",
-            "untested" : [ ]
+            "level" : "thin",
+            "untested" : [
+              "renders welcome view"
+            ]
           },
           "evidence" : {
-            "entryPoint" : "http:POST /owners/new",
-            "nodes" : [
-              "org.springframework.samples.petclinic.owner.OwnerController#processCreationForm"
-            ],
-            "assignmentSites" : [ ],
-            "covers" : [ ]
+            "entryPoint" : "http:GET /",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
           }
         },
         {
-          "feature" : "Owner Management",
-          "scenario" : "Reject an owner with invalid details",
-          "given" : "a new-owner form with missing or invalid fields",
-          "when" : "the form is submitted",
-          "then" : "validation errors are shown and nothing is saved",
-          "type" : "validation",
+          "feature" : "Site",
+          "scenario" : "Trigger the demo error page",
+          "given" : "the intentional failure endpoint",
+          "when" : "a visitor GETs /oups",
+          "then" : "an exception is raised and the error page is shown (500)",
+          "type" : "edge-case",
           "priority" : "medium",
           "verifiedBy" : [
-            "OwnerControllerTests#processCreationFormHasErrors"
+            "CrashControllerTests#triggerException",
+            "CrashControllerIntegrationTests#triggerExceptionHtml",
+            "CrashControllerIntegrationTests#triggerExceptionJson"
           ],
           "gap" : false,
           "coverage" : {
@@ -1881,25 +1940,46 @@
             "untested" : [ ]
           },
           "evidence" : {
-            "entryPoint" : "http:POST /owners/new",
-            "nodes" : [
-              "org.springframework.samples.petclinic.owner.OwnerController#processCreationForm"
-            ],
-            "assignmentSites" : [ ],
-            "covers" : [ ]
+            "entryPoint" : "http:GET /oups",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
           }
         },
         {
-          "feature" : "Owner Management",
+          "feature" : "Owners",
+          "scenario" : "Show the find-owners form",
+          "given" : "a user wants to look up an owner",
+          "when" : "they GET /owners/find",
+          "then" : "the search form is displayed",
+          "type" : "happy-path",
+          "priority" : "medium",
+          "verifiedBy" : [
+            "OwnerControllerTests#initFindForm"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "partial",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:GET /owners/find",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Owners",
           "scenario" : "Search owners by last name",
-          "given" : "existing owners in the clinic",
-          "when" : "a search by last name is performed",
-          "then" : "the matching, paginated owners are listed",
+          "given" : "owners exist",
+          "when" : "the search is submitted via GET /owners",
+          "then" : "matching owners are listed; one match redirects to the owner, none re-shows the form with an error",
           "type" : "happy-path",
           "priority" : "medium",
           "verifiedBy" : [
+            "OwnerControllerTests#processFindFormSuccess",
             "OwnerControllerTests#processFindFormByLastName",
-            "ClinicServiceTests#shouldFindOwnersByLastName",
             "OwnerControllerTests#processFindFormNoOwnersFound"
           ],
           "gap" : false,
@@ -1909,26 +1989,117 @@
           },
           "evidence" : {
             "entryPoint" : "http:GET /owners",
-            "nodes" : [
-              "org.springframework.samples.petclinic.owner.OwnerController#processFindForm",
-              "org.springframework.samples.petclinic.owner.OwnerRepository#findByLastNameStartingWith"
-            ],
-            "assignmentSites" : [ ],
-            "covers" : [ ]
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
           }
         },
         {
-          "feature" : "Owner Management",
-          "scenario" : "Update an owner's details",
-          "given" : "an existing owner",
-          "when" : "the edit form is submitted with changes",
-          "then" : "the owner is updated",
+          "feature" : "Owners",
+          "scenario" : "Show the new-owner form",
+          "given" : "a user wants to register an owner",
+          "when" : "they GET /owners/new",
+          "then" : "the empty owner form is displayed",
           "type" : "happy-path",
           "priority" : "medium",
           "verifiedBy" : [
+            "OwnerControllerTests#initCreationForm"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "partial",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:GET /owners/new",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Owners",
+          "scenario" : "Register a new owner",
+          "given" : "valid owner details",
+          "when" : "the form is submitted via POST /owners/new",
+          "then" : "the owner is created and the user is redirected to their page; invalid input re-shows the form",
+          "type" : "happy-path",
+          "priority" : "high",
+          "verifiedBy" : [
+            "OwnerControllerTests#processCreationFormSuccess",
+            "OwnerControllerTests#processCreationFormHasErrors"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "full",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:POST /owners/new",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Owners",
+          "scenario" : "View an owner's details",
+          "given" : "an owner exists",
+          "when" : "a user GETs /owners/{ownerId}",
+          "then" : "the owner with their pets and visits is shown",
+          "type" : "happy-path",
+          "priority" : "medium",
+          "verifiedBy" : [
+            "OwnerControllerTests#showOwner"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "partial",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:GET /owners/{ownerId}",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Owners",
+          "scenario" : "Show the edit-owner form",
+          "given" : "an owner exists",
+          "when" : "a user GETs /owners/{ownerId}/edit",
+          "then" : "the form is pre-filled with the owner's data",
+          "type" : "happy-path",
+          "priority" : "medium",
+          "verifiedBy" : [
+            "OwnerControllerTests#initUpdateOwnerForm"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "partial",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:GET /owners/{ownerId}/edit",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Owners",
+          "scenario" : "Update an owner",
+          "given" : "an existing owner",
+          "when" : "edited details are submitted via POST /owners/{ownerId}/edit",
+          "then" : "the owner is updated and shown; invalid input or an id mismatch re-shows the form",
+          "type" : "happy-path",
+          "priority" : "high",
+          "verifiedBy" : [
             "OwnerControllerTests#processUpdateOwnerFormSuccess",
-            "ClinicServiceTests#shouldUpdateOwner",
-            "OwnerControllerTests#processUpdateOwnerFormHasErrors"
+            "OwnerControllerTests#processUpdateOwnerFormUnchangedSuccess",
+            "OwnerControllerTests#processUpdateOwnerFormHasErrors",
+            "OwnerControllerTests#processUpdateOwnerFormWithIdMismatch"
           ],
           "gap" : false,
           "coverage" : {
@@ -1937,51 +2108,47 @@
           },
           "evidence" : {
             "entryPoint" : "http:POST /owners/{ownerId}/edit",
-            "nodes" : [
-              "org.springframework.samples.petclinic.owner.OwnerController#processUpdateOwnerForm"
-            ],
-            "assignmentSites" : [ ],
-            "covers" : [ ]
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
           }
         },
         {
-          "feature" : "Pet Management",
+          "feature" : "Pets",
+          "scenario" : "Show the new-pet form",
+          "given" : "an owner exists",
+          "when" : "a user GETs /owners/{ownerId}/pets/new",
+          "then" : "the new-pet form (with pet types) is displayed",
+          "type" : "happy-path",
+          "priority" : "medium",
+          "verifiedBy" : [
+            "PetControllerTests#initCreationForm"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "partial",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:GET /owners/{ownerId}/pets/new",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Pets",
           "scenario" : "Add a pet to an owner",
-          "given" : "an existing owner",
-          "when" : "a new pet is submitted for that owner",
-          "then" : "the pet is created under the owner",
+          "given" : "valid pet details",
+          "when" : "submitted via POST /owners/{ownerId}/pets/new",
+          "then" : "the pet is added to the owner; blank/duplicate name, missing type or invalid birth date re-show the form",
           "type" : "happy-path",
           "priority" : "high",
           "verifiedBy" : [
             "PetControllerTests#processCreationFormSuccess",
-            "ClinicServiceTests#shouldInsertPetIntoDatabaseAndGenerateId"
-          ],
-          "gap" : false,
-          "coverage" : {
-            "level" : "full",
-            "untested" : [ ]
-          },
-          "evidence" : {
-            "entryPoint" : "http:POST /owners/{ownerId}/pets/new",
-            "nodes" : [
-              "org.springframework.samples.petclinic.owner.PetController#processCreationForm",
-              "org.springframework.samples.petclinic.owner.Owner#addPet"
-            ],
-            "assignmentSites" : [ ],
-            "covers" : [ ]
-          }
-        },
-        {
-          "feature" : "Pet Management",
-          "scenario" : "Reject a pet with a duplicate name for the owner",
-          "given" : "an owner who already has a pet with the same name",
-          "when" : "another pet with that name is submitted",
-          "then" : "a validation error is shown and nothing is saved",
-          "type" : "validation",
-          "priority" : "medium",
-          "verifiedBy" : [
-            "PetControllerTests#processCreationFormWithDuplicateName",
             "PetControllerTests#processCreationFormWithBlankName",
+            "PetControllerTests#processCreationFormWithDuplicateName",
+            "PetControllerTests#processCreationFormWithMissingPetType",
             "PetControllerTests#processCreationFormWithInvalidBirthDate"
           ],
           "gap" : false,
@@ -1991,51 +2158,48 @@
           },
           "evidence" : {
             "entryPoint" : "http:POST /owners/{ownerId}/pets/new",
-            "nodes" : [
-              "org.springframework.samples.petclinic.owner.PetController#processCreationForm"
-            ],
-            "assignmentSites" : [ ],
-            "covers" : [ ]
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
           }
         },
         {
-          "feature" : "Visits",
-          "scenario" : "Book a visit for a pet",
-          "given" : "an existing pet",
-          "when" : "a new visit is scheduled",
-          "then" : "the visit is recorded against the pet",
+          "feature" : "Pets",
+          "scenario" : "Show the edit-pet form",
+          "given" : "a pet exists",
+          "when" : "a user GETs /owners/{ownerId}/pets/{petId}/edit",
+          "then" : "the form is pre-filled with the pet's data",
           "type" : "happy-path",
-          "priority" : "high",
+          "priority" : "medium",
           "verifiedBy" : [
-            "ClinicServiceTests#shouldAddNewVisitForPet"
+            "PetControllerTests#initUpdateForm"
           ],
           "gap" : false,
           "coverage" : {
             "level" : "partial",
-            "untested" : [
-              "the visit-form validation and controller path have no dedicated test"
-            ]
+            "untested" : [ ]
           },
           "evidence" : {
-            "entryPoint" : "http:POST /owners/{ownerId}/pets/{petId}/visits/new",
-            "nodes" : [
-              "org.springframework.samples.petclinic.owner.VisitController#processNewVisitForm",
-              "org.springframework.samples.petclinic.owner.Pet#addVisit"
-            ],
-            "assignmentSites" : [ ],
-            "covers" : [ ]
+            "entryPoint" : "http:GET /owners/{ownerId}/pets/{petId}/edit",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
           }
         },
         {
-          "feature" : "Veterinarians",
-          "scenario" : "List the clinic's veterinarians",
-          "given" : "veterinarians registered in the clinic",
-          "when" : "the vets page is requested",
-          "then" : "the vets and their specialties are listed",
+          "feature" : "Pets",
+          "scenario" : "Update a pet",
+          "given" : "an existing pet",
+          "when" : "edited details are submitted via POST /owners/{ownerId}/pets/{petId}/edit",
+          "then" : "the pet is updated; blank/duplicate name or invalid birth date re-show the form",
           "type" : "happy-path",
-          "priority" : "medium",
+          "priority" : "high",
           "verifiedBy" : [
-            "ClinicServiceTests#shouldFindVets"
+            "PetControllerTests#processUpdateFormSuccess",
+            "PetControllerTests#processUpdateFormWithSameName",
+            "PetControllerTests#processUpdateFormWithDuplicateName",
+            "PetControllerTests#processUpdateFormWithInvalidBirthDate",
+            "PetControllerTests#processUpdateFormWithBlankName"
           ],
           "gap" : false,
           "coverage" : {
@@ -2043,17 +2207,109 @@
             "untested" : [ ]
           },
           "evidence" : {
+            "entryPoint" : "http:POST /owners/{ownerId}/pets/{petId}/edit",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Visits",
+          "scenario" : "Show the new-visit form",
+          "given" : "a pet exists",
+          "when" : "a user GETs /owners/{ownerId}/pets/{petId}/visits/new",
+          "then" : "the new-visit form is displayed",
+          "type" : "happy-path",
+          "priority" : "medium",
+          "verifiedBy" : [
+            "VisitControllerTests#initNewVisitForm"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "partial",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:GET /owners/{ownerId}/pets/{petId}/visits/new",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Visits",
+          "scenario" : "Book a visit for a pet",
+          "given" : "a pet and a valid visit",
+          "when" : "submitted via POST /owners/{ownerId}/pets/{petId}/visits/new",
+          "then" : "the visit is recorded against the pet; invalid input (incl. a non-future date) re-shows the form",
+          "type" : "happy-path",
+          "priority" : "high",
+          "verifiedBy" : [
+            "VisitControllerTests#processNewVisitFormSuccess",
+            "VisitControllerTests#processNewVisitFormHasErrors",
+            "VisitControllerTests#processNewVisitFormHasErrorsWhenVisitDateIsNotInFuture"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "full",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:POST /owners/{ownerId}/pets/{petId}/visits/new",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Veterinarians",
+          "scenario" : "List veterinarians (HTML)",
+          "given" : "vets are registered",
+          "when" : "a user GETs /vets.html",
+          "then" : "the paged vet list page is rendered",
+          "type" : "happy-path",
+          "priority" : "medium",
+          "verifiedBy" : [
+            "VetControllerTests#showVetListHtml"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "partial",
+            "untested" : [ ]
+          },
+          "evidence" : {
             "entryPoint" : "http:GET /vets.html",
-            "nodes" : [
-              "org.springframework.samples.petclinic.vet.VetController#showVetList"
-            ],
-            "assignmentSites" : [ ],
-            "covers" : [ ]
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
+          }
+        },
+        {
+          "feature" : "Veterinarians",
+          "scenario" : "List veterinarians (JSON)",
+          "given" : "vets are registered",
+          "when" : "a client GETs /vets",
+          "then" : "the vets are returned as JSON",
+          "type" : "happy-path",
+          "priority" : "medium",
+          "verifiedBy" : [
+            "VetControllerTests#showResourcesVetList"
+          ],
+          "gap" : false,
+          "coverage" : {
+            "level" : "partial",
+            "untested" : [ ]
+          },
+          "evidence" : {
+            "entryPoint" : "http:GET /vets",
+            "covers" : [ ],
+            "nodes" : [ ],
+            "assignmentSites" : [ ]
           }
         }
       ],
       "model" : "agent:claude-code",
-      "sourceHash" : "sha256:b78530477abc57f5bc14697340bec79e1d509fbc471366798d431f8582e360ef"
+      "sourceHash" : "sha256:fdfad456f317ad794679b746ee1141cbac452c32fcd6d9084059e026fd6c0b19"
     },
     "domains" : {
       "data" : [
@@ -2065,10 +2321,17 @@
             "PetType",
             "Person",
             "OwnerController",
-            "PetController",
-            "OwnerRepository"
+            "PetController"
           ],
-          "rationale" : "The core clinic customer data: owners and their pets, with the web controllers and repository that manage them."
+          "rationale" : "The pet owner aggregate — an owner with their pets and each pet's type — plus the controllers that register and edit them."
+        },
+        {
+          "domain" : "Visits",
+          "members" : [
+            "Visit",
+            "VisitController"
+          ],
+          "rationale" : "Clinic visits booked against a pet, and the controller that schedules them."
         },
         {
           "domain" : "Veterinarians",
@@ -2077,39 +2340,15 @@
             "Specialty",
             "VetController"
           ],
-          "rationale" : "The clinic's veterinarians and their specialties, exposed read-only through the vets page."
-        },
-        {
-          "domain" : "Visits",
-          "members" : [
-            "Visit",
-            "VisitController"
-          ],
-          "rationale" : "Scheduling and recording clinical visits for a pet."
-        },
-        {
-          "domain" : "Web & System",
-          "members" : [
-            "WelcomeController",
-            "CrashController"
-          ],
-          "rationale" : "Cross-cutting web endpoints: the landing page and the error-demo endpoint."
-        },
-        {
-          "domain" : "Shared Kernel",
-          "members" : [
-            "BaseEntity",
-            "NamedEntity"
-          ],
-          "rationale" : "Base persistence types (id, name) reused by the domain entities."
+          "rationale" : "The veterinarians and their specialties, exposed as a read-only list (HTML and JSON)."
         }
       ],
       "model" : "agent:claude-code",
-      "sourceHash" : "sha256:d494e0ac43f0fa11b45180267ff6c1cd0badb4f678515e3977546f77eb20214e"
+      "sourceHash" : "sha256:223c795a6d7a91c496c84884d3c6cc1c5a46bfba1b4720f34c7583ae5ae3220a"
     },
     "stateTransitions" : {
       "data" : [ ],
-      "model" : "none",
+      "model" : "agent:claude-code",
       "sourceHash" : "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
     }
   },
@@ -2117,6 +2356,6 @@
     "commit" : "b3ee2c53e76e9267f03551a7cd36b0983c859c56",
     "commitMessage" : "Add test for duplicate pet name during update\n\nSigned-off-by: sumituppal03 <sumituppal2004@gmail.com>",
     "generatedAt" : "2026-06-19T13:28:28+01:00",
-    "name" : "petclinic"
+    "name" : "spring-petclinic"
   }
 }

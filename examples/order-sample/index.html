@@ -297,8 +297,8 @@ window.addEventListener('load', function(){
 });
 </script>
 </head><body>
-<header><button id="theme-toggle" class="theme-toggle" title="Toggle light/dark" aria-label="Toggle theme">◐</button><h1>Knowledge Index</h1><div class="meta"><strong>order-sample</strong> · commit <code>76492bcaf3</code> · 2026-07-04T23:01:38-03:00</div><details class="commitbox"><summary>chore(examples): regenerate order-sample</summary><div class="commitbody">Reflects the per-endpoint use-case model and the interactive diagram renderer
-(pan/zoom, expand modal, copy-source).
+<header><button id="theme-toggle" class="theme-toggle" title="Toggle light/dark" aria-label="Toggle theme">◐</button><h1>Knowledge Index</h1><div class="meta"><strong>order-sample</strong> · commit <code>6fd06d07d9</code> · 2026-07-04T23:43:39-03:00</div><details class="commitbox"><summary>chore(examples): regenerate order-sample</summary><div class="commitbody">Picks up event-flow support, the choreography section, category/feature grouping and
+the per-feature count.
 
 Co-Authored-By: Claude Opus 4.8 &lt;noreply@anthropic.com&gt;</div></details><div class="cards"><div class="cardbox"><div class="num">1</div><div class="lbl">entities</div></div><div class="cardbox"><div class="num">6</div><div class="lbl">entry points</div></div><div class="cardbox"><div class="num">19</div><div class="lbl">graph nodes</div></div><div class="cardbox"><div class="num">21</div><div class="lbl">call edges</div></div><div class="cardbox"><div class="num">1</div><div class="lbl">state machines</div></div><div class="cardbox"><div class="num">4</div><div class="lbl">test scenarios</div></div></div><div class="legend"><span class="badge fact">deterministic</span> extracted from the AST &nbsp; <span class="badge llm">interpreted</span> LLM, hover for evidence</div></header>
 <section><h2>Use Cases <span class="sub">flows</span> <span class="badge llm" title="Use cases interpreted by agent:claude-code, anchored to endpoints &amp; tests">interpreted</span></h2>
@@ -450,5 +450,5 @@ mindmap
 <table><thead><tr><th>Test class</th><th>Target</th><th>#</th><th>Scenarios</th></tr></thead><tbody>
 <tr><td><code>OrderServiceTest</code></td><td><span class="target">OrderService</span></td><td>4</td><td><ul class="tight"><li>placing an order starts it in NEW <span class="ev">place_startsInNewStatus</span></li><li>pay moves order to paid <span class="ev">pay_movesOrderToPaid</span></li><li>ship moves paid order to shipped <span class="ev">ship_movesPaidOrderToShipped</span></li><li>cancel moves order to cancelled <span class="ev">cancel_movesOrderToCancelled</span></li></ul></td></tr>
 </tbody></table></details></section>
-<footer>Generated deterministically from commit <code>76492bcaf3</code>. Enrichment items are interpretations anchored to code evidence.</footer>
+<footer>Generated deterministically from commit <code>6fd06d07d9</code>. Enrichment items are interpretations anchored to code evidence.</footer>
 </body></html>

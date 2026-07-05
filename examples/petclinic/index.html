@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Knowledge Index — petclinic</title>
+<title>Knowledge Index — spring-petclinic</title>
 <style>
 :root{--fg:#1f2328;--muted:#656d76;--line:#d0d7de;--bg:#fff;--accent:#0969da;
       --fact:#1a7f37;--llm:#8250df;--gap:#cf222e;--card:#f6f8fa;}
@@ -37,9 +37,30 @@ code{background:var(--card);padding:.05rem .3rem;border-radius:4px;font-size:.86
 .badge.fact{background:#dafbe1;color:var(--fact)}
 .badge.llm{background:#fbefff;color:var(--llm);cursor:help;border:1px solid #e5c9ff}
 .legend{color:var(--muted);font-size:.85rem;margin-top:.6rem}
-pre.mermaid,pre.mermaid-lazy{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow-x:auto;text-align:center}
+pre.mermaid,pre.mermaid-lazy{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow:auto;text-align:center;max-height:70vh}
+/* Contain the rendered SVG so a wide diagram scrolls inside its box instead of
+   overflowing and overlapping neighbouring sections. */
+pre.mermaid svg,pre.mermaid-lazy svg{max-width:100%;height:auto}
 pre.mermaid-lazy{font-size:.75rem;color:var(--muted);text-align:left}
 pre.mermaid-lazy.mermaid{text-align:center}
+/* Pan/zoom stage: once rendered, a diagram becomes a fixed-height viewport the
+   SVG is dragged/zoomed inside (CSS transform, driven by the head script — no lib). */
+pre.mermaid.pz,pre.mermaid-lazy.pz{position:relative;overflow:hidden;padding:0;cursor:grab;
+     height:clamp(340px,60vh,640px);max-height:none;text-align:left;touch-action:none}
+pre.mermaid.pz.grabbing,pre.mermaid-lazy.pz.grabbing{cursor:grabbing}
+/* In-page expand modal (lightbox) — inherits the current theme, closes on backdrop/Esc. */
+#pz-modal{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;
+     background:rgba(0,0,0,.55);padding:2.5vh 2vw}
+#pz-modal>pre.pz-modal-stage{width:96vw;height:95vh;max-height:none;margin:0;background:var(--card);
+     border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.45)}
+pre.mermaid.pz svg,pre.mermaid-lazy.pz svg{max-width:none;transform-origin:0 0;will-change:transform;user-select:none}
+.pz-ctl{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:5}
+.pz-ctl button{width:28px;height:28px;padding:0;border:1px solid var(--line);background:var(--card);
+     color:var(--fg);border-radius:6px;cursor:pointer;font-size:15px;line-height:1;
+     display:flex;align-items:center;justify-content:center}
+.pz-ctl button:hover{border-color:var(--accent);color:var(--accent)}
+.pz-hint{position:absolute;bottom:6px;left:10px;font-size:.68rem;color:var(--muted);
+     pointer-events:none;opacity:.65;user-select:none}
 table{border-collapse:collapse;width:100%;font-size:.9rem;margin:.4rem 0}
 th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
 th{background:var(--card)}
@@ -55,6 +76,11 @@ li{margin:.15rem 0}
 footer{color:var(--muted);font-size:.85rem;border-top:1px solid var(--line);margin-top:2rem}
 .sub{color:var(--muted);font-weight:400;font-size:.9rem}
 h3.feature{color:var(--accent);border-bottom:1px dashed var(--line);padding-bottom:.2rem}
+.eptype{margin:1.8rem 0 .2rem;font-size:1.05rem;font-weight:700;letter-spacing:.05em;
+     text-transform:uppercase;border-bottom:2px solid var(--accent);padding-bottom:.3rem}
+.eptype-n{font-weight:400;font-size:.78rem;letter-spacing:0;text-transform:none;color:var(--muted)}
+.feat-n{font-weight:400;font-size:.72rem;color:var(--muted);vertical-align:middle;
+     border:1px solid var(--line);border-radius:9px;padding:0 .4rem;margin-left:.15rem}
 .scenario{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;
           padding:.5rem .7rem;margin:.5rem 0;background:#fff}
 .scenario.gaprow{border-left-color:var(--gap);background:#fff8f8}
@@ -117,24 +143,146 @@ details.unclassified>summary{cursor:pointer;color:var(--muted);font-size:.9rem}
 function kindexTheme(){ return document.documentElement.getAttribute('data-theme'); }
 function mermaidTheme(t){ return t==='dark'?'dark':'neutral'; }
 mermaid.initialize({startOnLoad:false, theme: mermaidTheme(kindexTheme())});
-// Render one diagram, caching its source so it can be re-rendered on theme change.
-function renderDiagram(el){
+// Cache each diagram's source so it survives re-rendering (theme change).
+function prep(el){
   if(el.dataset.src===undefined) el.dataset.src = el.textContent;
   el.innerHTML = el.dataset.src;
   el.removeAttribute('data-processed');
   el.classList.add('mermaid');
-  try { mermaid.run({nodes:[el]}); } catch(e){}
+}
+// Copy the diagram's Mermaid source to the clipboard (usable in mermaid.live etc.).
+// Reads the cached source (data-src on inline stages, data-mmd on the modal clone).
+function fallbackCopy(txt){
+  var ta=document.createElement('textarea'); ta.value=txt;
+  ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){} document.body.removeChild(ta);
+}
+function copySource(pre, btn){
+  var txt = pre.dataset.src || pre.dataset.mmd || ''; if(!txt) return;
+  function ok(){ var g=btn.textContent; btn.textContent='\u2713'; btn.title='copied';
+    setTimeout(function(){ btn.textContent=g; btn.title='copy Mermaid source'; }, 1000); }
+  if(navigator.clipboard && navigator.clipboard.writeText)
+    navigator.clipboard.writeText(txt).then(ok, function(){ fallbackCopy(txt); ok(); });
+  else { fallbackCopy(txt); ok(); }
+}
+// Pan/zoom core, shared by inline stages and the expand modal. Drag to pan;
+// zoom via the +/- buttons (no wheel — the page scrolls a lot); fit, copy, plus one
+// context button (expand inline / close in the modal). Pure CSS transform, no lib.
+// State + apply/fit are stashed ON the element and refreshed on every call, so the
+// once-bound drag listeners always drive the CURRENT svg (survives a theme re-render
+// that swaps the svg, and a modal re-open that clones a new one).
+function panzoom(pre, opts){
+  var svg = pre.querySelector('svg'); if(!svg) return;
+  pre.classList.add('pz');                 // fix the stage height before measuring
+  var vb = svg.viewBox && svg.viewBox.baseVal;
+  var w = vb && vb.width ? vb.width : svg.clientWidth;
+  var h = vb && vb.height ? vb.height : svg.clientHeight;
+  if(w){ svg.style.width = w+'px'; svg.style.height = h+'px'; }
+  var st = pre._pz || (pre._pz = {s:1,x:0,y:0});
+  function apply(){ svg.style.transform = 'translate('+st.x+'px,'+st.y+'px) scale('+st.s+')'; }
+  function fit(){
+    var cw = pre.clientWidth, ch = pre.clientHeight;
+    if(w && h){ st.s = Math.min(cw/w, ch/h, 1.5); st.x = (cw-w*st.s)/2; st.y = (ch-h*st.s)/2; }
+    else { st.s=1; st.x=0; st.y=0; }
+    apply();
+  }
+  function zoom(f, cx, cy){
+    var ns = Math.min(8, Math.max(0.1, st.s*f));
+    st.x = cx-(cx-st.x)*(ns/st.s); st.y = cy-(cy-st.y)*(ns/st.s); st.s = ns; apply();
+  }
+  pre._pzApply = apply; pre._pzFit = fit;   // refreshed per call, drive the current svg
+  fit();
+  // Controls are wiped when a theme re-render / modal-open resets innerHTML — rebuild if gone.
+  if(!pre.querySelector('.pz-ctl')){
+    var bar = document.createElement('div'); bar.className = 'pz-ctl';
+    var glyphs=['+','\u2212','\u2922','\u29c9',opts.glyph];
+    var titles=['zoom in','zoom out','fit','copy Mermaid source',opts.title];
+    glyphs.forEach(function(lbl,i){
+      var b = document.createElement('button'); b.type='button'; b.textContent = lbl; b.title = titles[i];
+      b.addEventListener('click', function(e){ e.stopPropagation();
+        if(i===4){ opts.action(); return; }
+        if(i===3){ copySource(pre, b); return; }
+        var r = pre.getBoundingClientRect();
+        if(i===2) fit(); else zoom(i===0?1.25:0.8, r.width/2, r.height/2);
+      });
+      bar.appendChild(b);
+    });
+    pre.appendChild(bar);
+    var hint = document.createElement('div'); hint.className='pz-hint';
+    hint.textContent = 'drag to pan'; pre.appendChild(hint);
+  }
+  if(pre.dataset.pzBound) return; pre.dataset.pzBound = '1';
+  var drag=false, ox=0, oy=0;
+  pre.addEventListener('pointerdown', function(e){ if(e.target.closest('.pz-ctl')) return;
+    drag=true; ox=e.clientX-pre._pz.x; oy=e.clientY-pre._pz.y; pre.classList.add('grabbing');
+    try{ pre.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  pre.addEventListener('pointermove', function(e){ if(!drag) return;
+    pre._pz.x=e.clientX-ox; pre._pz.y=e.clientY-oy; pre._pzApply();
+  });
+  function end(){ drag=false; pre.classList.remove('grabbing'); }
+  pre.addEventListener('pointerup', end);
+  pre.addEventListener('pointercancel', end);
+}
+// Inline stage: the 4th control expands the diagram into an in-page modal.
+function enhance(pre){
+  if(!pre.querySelector('svg')) return;
+  panzoom(pre, {glyph:'\u26f6', title:'expand', action:function(){ openModal(pre); }});
+}
+// Expand modal: a large in-page lightbox holding a fresh clone of the diagram
+// with its own pan/zoom. Backdrop click or Esc closes it. Stays inside the page
+// (no OS fullscreen), inheriting the current theme.
+function modalEls(){
+  var o = document.getElementById('pz-modal');
+  if(!o){
+    o = document.createElement('div'); o.id = 'pz-modal';
+    var stage = document.createElement('pre'); stage.className = 'mermaid pz-modal-stage';
+    stage.id = 'pz-modal-stage'; o.appendChild(stage);
+    o.addEventListener('click', function(e){ if(e.target===o) closeModal(); });
+    document.body.appendChild(o);
+  }
+  return {overlay:o, stage:document.getElementById('pz-modal-stage')};
+}
+function openModal(srcPre){
+  var srcSvg = srcPre.querySelector('svg'); if(!srcSvg) return;
+  var m = modalEls();
+  m.stage.innerHTML = ''; m.stage._pz = null;      // fresh view each open
+  m.stage.dataset.mmd = srcPre.dataset.src || srcPre.dataset.mmd || '';  // for copy
+  var clone = srcSvg.cloneNode(true); clone.removeAttribute('style');
+  m.stage.appendChild(clone);
+  m.overlay.style.display = 'flex';
+  document.body.style.overflow = 'hidden';         // freeze page scroll behind
+  panzoom(m.stage, {glyph:'\u2715', title:'close', action:closeModal});
+}
+function closeModal(){
+  var o = document.getElementById('pz-modal');
+  if(o) o.style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){ var o=document.getElementById('pz-modal'); if(o && o.style.display!=='none') closeModal(); }
+});
+// Render a batch in a SINGLE mermaid.run — concurrent per-element runs leave
+// stray measuring SVGs that overlap other sections (mindmaps especially).
+function renderBatch(nodes){
+  if(!nodes.length) return;
+  nodes.forEach(prep);
+  try {
+    var p = mermaid.run({nodes:nodes});
+    if(p && p.then) p.then(function(){ nodes.forEach(enhance); }, function(){});
+    else nodes.forEach(enhance);
+  } catch(e){}
 }
 window.addEventListener('load', function(){
-  // Top-level diagrams (ER, state, mindmap) are always visible — render now.
-  document.querySelectorAll('pre.mermaid:not(.mermaid-lazy)').forEach(renderDiagram);
+  // Top-level diagrams (ER, state, mindmap) are always visible — render together.
+  renderBatch([...document.querySelectorAll('pre.mermaid:not(.mermaid-lazy)')]);
   // Sequence diagrams live inside collapsed <details>; render on first open
   // (otherwise Mermaid measures a hidden 0-width element and draws nothing).
   document.querySelectorAll('details.usecase').forEach(function(d){
     d.addEventListener('toggle', function(){
       if(!d.open) return;
       var el=d.querySelector('pre.mermaid-lazy');
-      if(el && !el.dataset.rendered){ el.dataset.rendered='1'; renderDiagram(el); }
+      if(el && !el.dataset.rendered){ el.dataset.rendered='1'; renderBatch([el]); }
     });
   });
   // Toggle button: flip theme, persist, re-init Mermaid and re-render live diagrams.
@@ -144,39 +292,24 @@ window.addEventListener('load', function(){
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('kindex-theme', next);
     mermaid.initialize({startOnLoad:false, theme: mermaidTheme(next)});
-    document.querySelectorAll('pre.mermaid, pre.mermaid-lazy').forEach(function(el){
-      if(el.dataset.src!==undefined) renderDiagram(el);
-    });
+    renderBatch([...document.querySelectorAll('pre.mermaid, pre.mermaid-lazy')].filter(function(el){ return el.dataset.src!==undefined; }));
   });
 });
 </script>
 </head><body>
-<header><button id="theme-toggle" class="theme-toggle" title="Toggle light/dark" aria-label="Toggle theme">◐</button><h1>Knowledge Index</h1><div class="meta"><strong>petclinic</strong> · commit <code>b3ee2c53e7</code> · 2026-06-19T13:28:28+01:00</div><details class="commitbox"><summary>Add test for duplicate pet name during update</summary><div class="commitbody">Signed-off-by: sumituppal03 &lt;sumituppal2004@gmail.com&gt;</div></details><div class="cards"><div class="cardbox"><div class="num">9</div><div class="lbl">entities</div></div><div class="cardbox"><div class="num">17</div><div class="lbl">entry points</div></div><div class="cardbox"><div class="num">43</div><div class="lbl">graph nodes</div></div><div class="cardbox"><div class="num">42</div><div class="lbl">call edges</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">state machines</div></div><div class="cardbox"><div class="num">74</div><div class="lbl">test scenarios</div></div></div><div class="legend"><span class="badge fact">deterministic</span> extracted from the AST &nbsp; <span class="badge llm">interpreted</span> LLM, hover for evidence</div></header>
+<header><button id="theme-toggle" class="theme-toggle" title="Toggle light/dark" aria-label="Toggle theme">◐</button><h1>Knowledge Index</h1><div class="meta"><strong>spring-petclinic</strong> · commit <code>b3ee2c53e7</code> · 2026-06-19T13:28:28+01:00</div><details class="commitbox"><summary>Add test for duplicate pet name during update</summary><div class="commitbody">Signed-off-by: sumituppal03 &lt;sumituppal2004@gmail.com&gt;</div></details><div class="cards"><div class="cardbox"><div class="num">9</div><div class="lbl">entities</div></div><div class="cardbox"><div class="num">17</div><div class="lbl">entry points</div></div><div class="cardbox"><div class="num">44</div><div class="lbl">graph nodes</div></div><div class="cardbox"><div class="num">47</div><div class="lbl">call edges</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">state machines</div></div><div class="cardbox"><div class="num">74</div><div class="lbl">test scenarios</div></div></div><div class="legend"><span class="badge fact">deterministic</span> extracted from the AST &nbsp; <span class="badge llm">interpreted</span> LLM, hover for evidence</div></header>
 <section><h2>Use Cases <span class="sub">flows</span> <span class="badge llm" title="Use cases interpreted by agent:claude-code, anchored to endpoints &amp; tests">interpreted</span></h2>
-<div class="cards"><div class="cardbox"><div class="num">8</div><div class="lbl">use cases</div></div><div class="cardbox"><div class="num">8</div><div class="lbl">verified by tests</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">coverage gaps</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">critical gaps</div></div></div>
-<div class="covroll">Coverage estimate <span class="badge llm" title="LLM estimate per use case">interpreted</span>: <span class="cov cov-full">7 full</span> · <span class="cov cov-partial">1 partial</span> · <span class="cov cov-thin">0 thin</span></div>
-<h3 class="feature">Owner Management</h3>
-<details class="usecase"><summary><span class="scentitle">Register a new pet owner</span><span class="endpoint">POST /owners/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 2 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a clinic staffer with a new owner's details</div><div><span class="kw">When</span> the new-owner form is submitted</div><div><span class="kw">Then</span> the owner is created and its detail page is shown</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+<div class="cards"><div class="cardbox"><div class="num">17</div><div class="lbl">use cases</div></div><div class="cardbox"><div class="num">16</div><div class="lbl">verified by tests</div></div><div class="cardbox"><div class="num">1</div><div class="lbl">coverage gaps</div></div><div class="cardbox"><div class="num">0</div><div class="lbl">critical gaps</div></div></div>
+<div class="covroll">Coverage estimate <span class="badge llm" title="LLM estimate per use case">interpreted</span>: <span class="cov cov-full">7 full</span> · <span class="cov cov-partial">9 partial</span> · <span class="cov cov-thin">1 thin</span></div>
+<h3 class="feature">Owners <span class="feat-n">7</span></h3>
+<details class="usecase"><summary><span class="scentitle">Show the find-owners form</span><span class="endpoint">GET /owners/find</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a user wants to look up an owner</div><div><span class="kw">When</span> they GET /owners/find</div><div><span class="kw">Then</span> the search form is displayed</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant OwnerController
-  participant BaseEntity
-  Client->>OwnerController: POST /owners/new
-  OwnerController->>BaseEntity: getId
-  BaseEntity-->>OwnerController: Integer
+  Client->>OwnerController: GET /owners/find
   OwnerController-->>Client: String
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processCreationFormSuccess, ClinicServiceTests#shouldInsertOwner</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<details class="usecase"><summary><span class="scentitle">Reject an owner with invalid details</span><span class="endpoint">POST /owners/new</span><span class="tag prio-medium">medium</span><span class="tag type">validation</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a new-owner form with missing or invalid fields</div><div><span class="kw">When</span> the form is submitted</div><div><span class="kw">Then</span> validation errors are shown and nothing is saved</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
-sequenceDiagram
-  actor Client
-  participant OwnerController
-  participant BaseEntity
-  Client->>OwnerController: POST /owners/new
-  OwnerController->>BaseEntity: getId
-  BaseEntity-->>OwnerController: Integer
-  OwnerController-->>Client: String
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processCreationFormHasErrors</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<details class="usecase"><summary><span class="scentitle">Search owners by last name</span><span class="endpoint">GET /owners</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> existing owners in the clinic</div><div><span class="kw">When</span> a search by last name is performed</div><div><span class="kw">Then</span> the matching, paginated owners are listed</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#initFindForm</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Search owners by last name</span><span class="endpoint">GET /owners</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> owners exist</div><div><span class="kw">When</span> the search is submitted via GET /owners</div><div><span class="kw">Then</span> matching owners are listed; one match redirects to the owner, none re-shows the form with an error</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant OwnerController
@@ -195,20 +328,76 @@ sequenceDiagram
   OwnerController->>OwnerController: addPaginationModel
   OwnerController-->>OwnerController: String
   OwnerController-->>Client: String
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processFindFormByLastName, ClinicServiceTests#shouldFindOwnersByLastName, OwnerControllerTests#processFindFormNoOwnersFound</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<details class="usecase"><summary><span class="scentitle">Update an owner's details</span><span class="endpoint">POST /owners/{ownerId}/edit</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing owner</div><div><span class="kw">When</span> the edit form is submitted with changes</div><div><span class="kw">Then</span> the owner is updated</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processFindFormSuccess, OwnerControllerTests#processFindFormByLastName, OwnerControllerTests#processFindFormNoOwnersFound</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Show the new-owner form</span><span class="endpoint">GET /owners/new</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a user wants to register an owner</div><div><span class="kw">When</span> they GET /owners/new</div><div><span class="kw">Then</span> the empty owner form is displayed</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OwnerController
+  Client->>OwnerController: GET /owners/new
+  OwnerController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#initCreationForm</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Register a new owner</span><span class="endpoint">POST /owners/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 2 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> valid owner details</div><div><span class="kw">When</span> the form is submitted via POST /owners/new</div><div><span class="kw">Then</span> the owner is created and the user is redirected to their page; invalid input re-shows the form</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OwnerController
+  participant OwnerRepository
+  participant BaseEntity
+  Client->>OwnerController: POST /owners/new
+  OwnerController->>OwnerRepository: save
+  OwnerController->>BaseEntity: getId
+  BaseEntity-->>OwnerController: Integer
+  OwnerController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processCreationFormSuccess, OwnerControllerTests#processCreationFormHasErrors</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">View an owner's details</span><span class="endpoint">GET /owners/{ownerId}</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an owner exists</div><div><span class="kw">When</span> a user GETs /owners/{ownerId}</div><div><span class="kw">Then</span> the owner with their pets and visits is shown</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OwnerController
+  participant OwnerRepository
+  Client->>OwnerController: GET /owners/(ownerId)
+  OwnerController->>OwnerRepository: findById
+  OwnerRepository-->>OwnerController: Optional
+  alt Owner not found with id:
+    OwnerController--xClient: error (IllegalArgumentException)
+  else success
+    OwnerController-->>Client: ModelAndView
+  end
+</pre><div class="uc-meta"><strong>Alternative flows</strong> <span class="badge fact">deterministic</span><ul class="tight"><li><code>IllegalArgumentException</code> — <span class="ev">Owner not found with id: </span></li></ul></div><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#showOwner</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Show the edit-owner form</span><span class="endpoint">GET /owners/{ownerId}/edit</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an owner exists</div><div><span class="kw">When</span> a user GETs /owners/{ownerId}/edit</div><div><span class="kw">Then</span> the form is pre-filled with the owner's data</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant OwnerController
+  Client->>OwnerController: GET /owners/(ownerId)/edit
+  OwnerController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#initUpdateOwnerForm</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Update an owner</span><span class="endpoint">POST /owners/{ownerId}/edit</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 4 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing owner</div><div><span class="kw">When</span> edited details are submitted via POST /owners/{ownerId}/edit</div><div><span class="kw">Then</span> the owner is updated and shown; invalid input or an id mismatch re-shows the form</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant OwnerController
   participant BaseEntity
+  participant OwnerRepository
   Client->>OwnerController: POST /owners/(ownerId)/edit
   OwnerController->>BaseEntity: getId
   BaseEntity-->>OwnerController: Integer
   OwnerController->>BaseEntity: setId
+  OwnerController->>OwnerRepository: save
   OwnerController-->>Client: String
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processUpdateOwnerFormSuccess, ClinicServiceTests#shouldUpdateOwner, OwnerControllerTests#processUpdateOwnerFormHasErrors</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<h3 class="feature">Pet Management</h3>
-<details class="usecase"><summary><span class="scentitle">Add a pet to an owner</span><span class="endpoint">POST /owners/{ownerId}/pets/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 2 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing owner</div><div><span class="kw">When</span> a new pet is submitted for that owner</div><div><span class="kw">Then</span> the pet is created under the owner</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">OwnerControllerTests#processUpdateOwnerFormSuccess, OwnerControllerTests#processUpdateOwnerFormUnchangedSuccess, OwnerControllerTests#processUpdateOwnerFormHasErrors, OwnerControllerTests#processUpdateOwnerFormWithIdMismatch</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<h3 class="feature">Pets <span class="feat-n">4</span></h3>
+<details class="usecase"><summary><span class="scentitle">Show the new-pet form</span><span class="endpoint">GET /owners/{ownerId}/pets/new</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an owner exists</div><div><span class="kw">When</span> a user GETs /owners/{ownerId}/pets/new</div><div><span class="kw">Then</span> the new-pet form (with pet types) is displayed</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant PetController
+  participant Owner
+  participant BaseEntity
+  Client->>PetController: GET /owners/(ownerId)/pets/new
+  PetController->>Owner: addPet
+  Owner->>BaseEntity: isNew
+  BaseEntity-->>Owner: boolean
+  Owner->>Owner: getPets
+  Owner-->>Owner: List
+  PetController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">PetControllerTests#initCreationForm</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Add a pet to an owner</span><span class="endpoint">POST /owners/{ownerId}/pets/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 5 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> valid pet details</div><div><span class="kw">When</span> submitted via POST /owners/{ownerId}/pets/new</div><div><span class="kw">Then</span> the pet is added to the owner; blank/duplicate name, missing type or invalid birth date re-show the form</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant PetController
@@ -216,6 +405,7 @@ sequenceDiagram
   participant NamedEntity
   participant Owner
   participant Pet
+  participant OwnerRepository
   Client->>PetController: POST /owners/(ownerId)/pets/new
   PetController->>BaseEntity: isNew
   BaseEntity-->>PetController: boolean
@@ -232,36 +422,71 @@ sequenceDiagram
   BaseEntity-->>Owner: boolean
   Owner->>Owner: getPets
   Owner-->>Owner: List
+  PetController->>OwnerRepository: save
   PetController-->>Client: String
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">PetControllerTests#processCreationFormSuccess, ClinicServiceTests#shouldInsertPetIntoDatabaseAndGenerateId</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<details class="usecase"><summary><span class="scentitle">Reject a pet with a duplicate name for the owner</span><span class="endpoint">POST /owners/{ownerId}/pets/new</span><span class="tag prio-medium">medium</span><span class="tag type">validation</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an owner who already has a pet with the same name</div><div><span class="kw">When</span> another pet with that name is submitted</div><div><span class="kw">Then</span> a validation error is shown and nothing is saved</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">PetControllerTests#processCreationFormSuccess, PetControllerTests#processCreationFormWithBlankName, PetControllerTests#processCreationFormWithDuplicateName, PetControllerTests#processCreationFormWithMissingPetType, PetControllerTests#processCreationFormWithInvalidBirthDate</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Show the edit-pet form</span><span class="endpoint">GET /owners/{ownerId}/pets/{petId}/edit</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a pet exists</div><div><span class="kw">When</span> a user GETs /owners/{ownerId}/pets/{petId}/edit</div><div><span class="kw">Then</span> the form is pre-filled with the pet's data</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant PetController
-  participant BaseEntity
+  Client->>PetController: GET /owners/(ownerId)/pets/(petId)/edit
+  PetController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">PetControllerTests#initUpdateForm</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Update a pet</span><span class="endpoint">POST /owners/{ownerId}/pets/{petId}/edit</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 5 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing pet</div><div><span class="kw">When</span> edited details are submitted via POST /owners/{ownerId}/pets/{petId}/edit</div><div><span class="kw">Then</span> the pet is updated; blank/duplicate name or invalid birth date re-show the form</div></div><div class="uc-meta"><strong>Preconditions</strong> <span class="badge fact">deterministic</span><ul class="tight"><li><code>id != null</code> must hold <span class="ev">(guard)</span></li></ul></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant PetController
   participant NamedEntity
   participant Owner
+  participant BaseEntity
   participant Pet
-  Client->>PetController: POST /owners/(ownerId)/pets/new
-  PetController->>BaseEntity: isNew
-  BaseEntity-->>PetController: boolean
+  participant OwnerRepository
+  Client->>PetController: POST /owners/(ownerId)/pets/(petId)/edit
   PetController->>NamedEntity: getName
   NamedEntity-->>PetController: String
   PetController->>Owner: getPet
   Owner->>Owner: getPet
   Owner-->>Owner: Pet
   Owner-->>PetController: Pet
+  PetController->>BaseEntity: getId
+  BaseEntity-->>PetController: Integer
   PetController->>Pet: getBirthDate
   Pet-->>PetController: LocalDate
+  PetController->>PetController: updatePetDetails
+  PetController->>NamedEntity: setName
+  PetController->>Pet: setBirthDate
+  PetController->>Pet: getType
+  Pet-->>PetController: PetType
+  PetController->>Pet: setType
   PetController->>Owner: addPet
   Owner->>BaseEntity: isNew
   BaseEntity-->>Owner: boolean
   Owner->>Owner: getPets
   Owner-->>Owner: List
+  PetController->>OwnerRepository: save
   PetController-->>Client: String
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">PetControllerTests#processCreationFormWithDuplicateName, PetControllerTests#processCreationFormWithBlankName, PetControllerTests#processCreationFormWithInvalidBirthDate</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<h3 class="feature">Veterinarians</h3>
-<details class="usecase"><summary><span class="scentitle">List the clinic's veterinarians</span><span class="endpoint">GET /vets.html</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> veterinarians registered in the clinic</div><div><span class="kw">When</span> the vets page is requested</div><div><span class="kw">Then</span> the vets and their specialties are listed</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">PetControllerTests#processUpdateFormSuccess, PetControllerTests#processUpdateFormWithSameName, PetControllerTests#processUpdateFormWithDuplicateName, PetControllerTests#processUpdateFormWithInvalidBirthDate, PetControllerTests#processUpdateFormWithBlankName</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<h3 class="feature">Site <span class="feat-n">2</span></h3>
+<details class="usecase gaprow"><summary><span class="scentitle">Show the welcome page</span><span class="endpoint">GET /</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="gap">no coverage</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a visitor opens the clinic site</div><div><span class="kw">When</span> they GET /</div><div><span class="kw">Then</span> the welcome page is rendered</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant WelcomeController
+  Client->>WelcomeController: GET /
+  WelcomeController-->>Client: String
+</pre><div class="uc-meta gap"><strong>Coverage:</strong> no test exercises this flow</div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-thin">thin</span><ul class="tight"><li>renders welcome view</li></ul></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Trigger the demo error page</span><span class="endpoint">GET /oups</span><span class="tag prio-medium">medium</span><span class="tag type">edge-case</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> the intentional failure endpoint</div><div><span class="kw">When</span> a visitor GETs /oups</div><div><span class="kw">Then</span> an exception is raised and the error page is shown (500)</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant CrashController
+  Client->>CrashController: GET /oups
+  alt Expected: controller used to showcase what
+    CrashController--xClient: error (RuntimeException)
+  else success
+    CrashController-->>Client: String
+  end
+</pre><div class="uc-meta"><strong>Alternative flows</strong> <span class="badge fact">deterministic</span><ul class="tight"><li><code>RuntimeException</code> — <span class="ev">Expected: controller used to showcase what </span></li></ul></div><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">CrashControllerTests#triggerException, CrashControllerIntegrationTests#triggerExceptionHtml, CrashControllerIntegrationTests#triggerExceptionJson</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
+<h3 class="feature">Veterinarians <span class="feat-n">2</span></h3>
+<details class="usecase"><summary><span class="scentitle">List veterinarians (HTML)</span><span class="endpoint">GET /vets.html</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> vets are registered</div><div><span class="kw">When</span> a user GETs /vets.html</div><div><span class="kw">Then</span> the paged vet list page is rendered</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant VetController
@@ -274,15 +499,36 @@ sequenceDiagram
   VetController->>VetController: addPaginationModel
   VetController-->>VetController: String
   VetController-->>Client: String
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">ClinicServiceTests#shouldFindVets</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
-<h3 class="feature">Visits</h3>
-<details class="usecase"><summary><span class="scentitle">Book a visit for a pet</span><span class="endpoint">POST /owners/{ownerId}/pets/{petId}/visits/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> an existing pet</div><div><span class="kw">When</span> a new visit is scheduled</div><div><span class="kw">Then</span> the visit is recorded against the pet</div></div><div class="uc-meta"><strong>Preconditions</strong> <span class="badge fact">deterministic</span><ul class="tight"><li><code>pet</code> required <span class="ev">(guard)</span></li><li><code>petId</code> required <span class="ev">(guard)</span></li><li><code>visit</code> required <span class="ev">(guard)</span></li></ul></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">VetControllerTests#showVetListHtml</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">List veterinarians (JSON)</span><span class="endpoint">GET /vets</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> vets are registered</div><div><span class="kw">When</span> a client GETs /vets</div><div><span class="kw">Then</span> the vets are returned as JSON</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant VetController
+  participant VetRepository
+  participant Vets
+  Client->>VetController: GET /vets
+  VetController->>VetRepository: findAll
+  VetRepository-->>VetController: Collection
+  VetController->>Vets: getVetList
+  Vets-->>VetController: List
+  VetController-->>Client: Vets
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">VetControllerTests#showResourcesVetList</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<h3 class="feature">Visits <span class="feat-n">2</span></h3>
+<details class="usecase"><summary><span class="scentitle">Show the new-visit form</span><span class="endpoint">GET /owners/{ownerId}/pets/{petId}/visits/new</span><span class="tag prio-medium">medium</span><span class="tag type">happy-path</span><span class="ok">✓ 1 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a pet exists</div><div><span class="kw">When</span> a user GETs /owners/{ownerId}/pets/{petId}/visits/new</div><div><span class="kw">Then</span> the new-visit form is displayed</div></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
+sequenceDiagram
+  actor Client
+  participant VisitController
+  Client->>VisitController: GET /owners/(ownerId)/pets/(petId)/visits/new
+  VisitController-->>Client: String
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">VisitControllerTests#initNewVisitForm</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span></div></div></details>
+<details class="usecase"><summary><span class="scentitle">Book a visit for a pet</span><span class="endpoint">POST /owners/{ownerId}/pets/{petId}/visits/new</span><span class="tag prio-high">high</span><span class="tag type">happy-path</span><span class="ok">✓ 3 test(s)</span></summary><div class="uc-body"><div class="gherkin"><div><span class="kw">Given</span> a pet and a valid visit</div><div><span class="kw">When</span> submitted via POST /owners/{ownerId}/pets/{petId}/visits/new</div><div><span class="kw">Then</span> the visit is recorded against the pet; invalid input (incl. a non-future date) re-shows the form</div></div><div class="uc-meta"><strong>Preconditions</strong> <span class="badge fact">deterministic</span><ul class="tight"><li><code>pet</code> required <span class="ev">(guard)</span></li><li><code>petId</code> required <span class="ev">(guard)</span></li><li><code>visit</code> required <span class="ev">(guard)</span></li></ul></div><div class="uc-meta"><strong>Sequence</strong> <span class="badge fact">deterministic</span></div><pre class="mermaid-lazy">
 sequenceDiagram
   actor Client
   participant VisitController
   participant Visit
   participant Owner
   participant Pet
+  participant OwnerRepository
   Client->>VisitController: POST /owners/(ownerId)/pets/(petId)/visits/new
   VisitController->>Visit: getDate
   Visit-->>VisitController: LocalDate
@@ -292,11 +538,13 @@ sequenceDiagram
   Owner->>Pet: addVisit
   Pet->>Pet: getVisits
   Pet-->>Pet: Collection
+  VisitController->>OwnerRepository: save
   VisitController-->>Client: String
-</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">ClinicServiceTests#shouldAddNewVisitForPet</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-partial">partial</span><ul class="tight"><li>the visit-form validation and controller path have no dedicated test</li></ul></div></div></details>
-<details class="unclassified"><summary>Endpoints without a use case <span class="count">11</span></summary><ul><li><code>GET /</code></li><li><code>GET /oups</code></li><li><code>GET /owners/find</code></li><li><code>GET /owners/new</code></li><li><code>GET /owners/{ownerId}</code></li><li><code>GET /owners/{ownerId}/edit</code></li><li><code>GET /owners/{ownerId}/pets/new</code></li><li><code>GET /owners/{ownerId}/pets/{petId}/edit</code></li><li><code>GET /owners/{ownerId}/pets/{petId}/visits/new</code></li><li><code>GET /vets</code></li><li><code>POST /owners/{ownerId}/pets/{petId}/edit</code></li></ul></details>
+</pre><div class="uc-meta"><strong>Verified by:</strong> <span class="ev">VisitControllerTests#processNewVisitFormSuccess, VisitControllerTests#processNewVisitFormHasErrors, VisitControllerTests#processNewVisitFormHasErrorsWhenVisitDateIsNotInFuture</span></div><div class="uc-meta"><strong>Coverage estimate</strong> <span class="badge llm" title="LLM estimate over the deterministic error/validation branches">interpreted</span> <span class="cov cov-full">full</span></div></div></details>
 </section>
 <section><h2>Entity–Relationship <span class="badge fact">deterministic</span></h2>
+<p class="note">Grouped by module (3 bounded contexts); relations are shown within a module.</p>
+<h3 class="feature">model <span class="ev">3 entities</span></h3>
 <pre class="mermaid">
 erDiagram
   BaseEntity {
@@ -305,23 +553,23 @@ erDiagram
   NamedEntity {
     String name
   }
+  Person {
+    String firstName
+    String lastName
+  }
+</pre>
+<h3 class="feature">owner <span class="ev">4 entities</span></h3>
+<pre class="mermaid">
+erDiagram
   Owner {
     String address
     String city
     String telephone
   }
-  Person {
-    String firstName
-    String lastName
-  }
   Pet {
     LocalDate birthDate
   }
   PetType {
-  }
-  Specialty {
-  }
-  Vet {
   }
   Visit {
     LocalDate date
@@ -330,11 +578,21 @@ erDiagram
   Owner ||--o{ Pet : "pets"
   Pet }o--|| PetType : "type"
   Pet ||--o{ Visit : "visits"
+</pre>
+<h3 class="feature">vet <span class="ev">2 entities</span></h3>
+<pre class="mermaid">
+erDiagram
+  Specialty {
+  }
+  Vet {
+  }
   Vet }o--o{ Specialty : "specialties"
 </pre>
 </section>
 <section><h2>State Machines</h2>
 <p class="empty">No status/state enum detected — nothing to model. (Deterministic degradation: the section is simply empty.)</p></section>
+<section><h2>Event Choreography <span class="badge fact">deterministic</span></h2>
+<p class="empty">No domain events detected — nothing to choreograph. (Deterministic degradation: the section is simply empty.)</p></section>
 <section><h2>Domain Map <span class="badge llm" title="Grouping by agent:claude-code">interpreted</span></h2>
 <pre class="mermaid">
 mindmap
@@ -346,22 +604,15 @@ mindmap
       Person
       OwnerController
       PetController
-      OwnerRepository
+    Visits
+      Visit
+      VisitController
     Veterinarians
       Vet
       Specialty
       VetController
-    Visits
-      Visit
-      VisitController
-    Web & System
-      WelcomeController
-      CrashController
-    Shared Kernel
-      BaseEntity
-      NamedEntity
 </pre>
-<p class="note">Rationale:</p><ul><li><strong>Owners &amp; Pets</strong>: The core clinic customer data: owners and their pets, with the web controllers and repository that manage them.</li><li><strong>Veterinarians</strong>: The clinic's veterinarians and their specialties, exposed read-only through the vets page.</li><li><strong>Visits</strong>: Scheduling and recording clinical visits for a pet.</li><li><strong>Web &amp; System</strong>: Cross-cutting web endpoints: the landing page and the error-demo endpoint.</li><li><strong>Shared Kernel</strong>: Base persistence types (id, name) reused by the domain entities.</li></ul></section>
+<p class="note">Rationale:</p><ul><li><strong>Owners &amp; Pets</strong>: The pet owner aggregate — an owner with their pets and each pet's type — plus the controllers that register and edit them.</li><li><strong>Visits</strong>: Clinic visits booked against a pet, and the controller that schedules them.</li><li><strong>Veterinarians</strong>: The veterinarians and their specialties, exposed as a read-only list (HTML and JSON).</li></ul></section>
 <section><h2>Test Catalog <span class="badge fact">deterministic</span></h2>
 <details class="unclassified"><summary>Full test index — 18 classes, 74 scenarios</summary>
 <table><thead><tr><th>Test class</th><th>Target</th><th>#</th><th>Scenarios</th></tr></thead><tbody>

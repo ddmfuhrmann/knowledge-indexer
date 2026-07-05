@@ -1,98 +1,23 @@
 [
-  {
-    "feature": "Owner Management",
-    "scenario": "Register a new pet owner",
-    "given": "a clinic staffer with a new owner's details",
-    "when": "the new-owner form is submitted",
-    "then": "the owner is created and its detail page is shown",
-    "type": "happy-path", "priority": "high",
-    "verifiedBy": ["OwnerControllerTests#processCreationFormSuccess", "ClinicServiceTests#shouldInsertOwner"],
-    "gap": false,
-    "coverage": { "level": "full", "untested": [] },
-    "evidence": { "entryPoint": "http:POST /owners/new", "nodes": ["org.springframework.samples.petclinic.owner.OwnerController#processCreationForm"], "assignmentSites": [] }
-  },
-  {
-    "feature": "Owner Management",
-    "scenario": "Reject an owner with invalid details",
-    "given": "a new-owner form with missing or invalid fields",
-    "when": "the form is submitted",
-    "then": "validation errors are shown and nothing is saved",
-    "type": "validation", "priority": "medium",
-    "verifiedBy": ["OwnerControllerTests#processCreationFormHasErrors"],
-    "gap": false,
-    "coverage": { "level": "full", "untested": [] },
-    "evidence": { "entryPoint": "http:POST /owners/new", "nodes": ["org.springframework.samples.petclinic.owner.OwnerController#processCreationForm"], "assignmentSites": [] }
-  },
-  {
-    "feature": "Owner Management",
-    "scenario": "Search owners by last name",
-    "given": "existing owners in the clinic",
-    "when": "a search by last name is performed",
-    "then": "the matching, paginated owners are listed",
-    "type": "happy-path", "priority": "medium",
-    "verifiedBy": ["OwnerControllerTests#processFindFormByLastName", "ClinicServiceTests#shouldFindOwnersByLastName", "OwnerControllerTests#processFindFormNoOwnersFound"],
-    "gap": false,
-    "coverage": { "level": "full", "untested": [] },
-    "evidence": { "entryPoint": "http:GET /owners", "nodes": ["org.springframework.samples.petclinic.owner.OwnerController#processFindForm", "org.springframework.samples.petclinic.owner.OwnerRepository#findByLastNameStartingWith"], "assignmentSites": [] }
-  },
-  {
-    "feature": "Owner Management",
-    "scenario": "Update an owner's details",
-    "given": "an existing owner",
-    "when": "the edit form is submitted with changes",
-    "then": "the owner is updated",
-    "type": "happy-path", "priority": "medium",
-    "verifiedBy": ["OwnerControllerTests#processUpdateOwnerFormSuccess", "ClinicServiceTests#shouldUpdateOwner", "OwnerControllerTests#processUpdateOwnerFormHasErrors"],
-    "gap": false,
-    "coverage": { "level": "full", "untested": [] },
-    "evidence": { "entryPoint": "http:POST /owners/{ownerId}/edit", "nodes": ["org.springframework.samples.petclinic.owner.OwnerController#processUpdateOwnerForm"], "assignmentSites": [] }
-  },
-  {
-    "feature": "Pet Management",
-    "scenario": "Add a pet to an owner",
-    "given": "an existing owner",
-    "when": "a new pet is submitted for that owner",
-    "then": "the pet is created under the owner",
-    "type": "happy-path", "priority": "high",
-    "verifiedBy": ["PetControllerTests#processCreationFormSuccess", "ClinicServiceTests#shouldInsertPetIntoDatabaseAndGenerateId"],
-    "gap": false,
-    "coverage": { "level": "full", "untested": [] },
-    "evidence": { "entryPoint": "http:POST /owners/{ownerId}/pets/new", "nodes": ["org.springframework.samples.petclinic.owner.PetController#processCreationForm", "org.springframework.samples.petclinic.owner.Owner#addPet"], "assignmentSites": [] }
-  },
-  {
-    "feature": "Pet Management",
-    "scenario": "Reject a pet with a duplicate name for the owner",
-    "given": "an owner who already has a pet with the same name",
-    "when": "another pet with that name is submitted",
-    "then": "a validation error is shown and nothing is saved",
-    "type": "validation", "priority": "medium",
-    "verifiedBy": ["PetControllerTests#processCreationFormWithDuplicateName", "PetControllerTests#processCreationFormWithBlankName", "PetControllerTests#processCreationFormWithInvalidBirthDate"],
-    "gap": false,
-    "coverage": { "level": "full", "untested": [] },
-    "evidence": { "entryPoint": "http:POST /owners/{ownerId}/pets/new", "nodes": ["org.springframework.samples.petclinic.owner.PetController#processCreationForm"], "assignmentSites": [] }
-  },
-  {
-    "feature": "Visits",
-    "scenario": "Book a visit for a pet",
-    "given": "an existing pet",
-    "when": "a new visit is scheduled",
-    "then": "the visit is recorded against the pet",
-    "type": "happy-path", "priority": "high",
-    "verifiedBy": ["ClinicServiceTests#shouldAddNewVisitForPet"],
-    "gap": false,
-    "coverage": { "level": "partial", "untested": ["the visit-form validation and controller path have no dedicated test"] },
-    "evidence": { "entryPoint": "http:POST /owners/{ownerId}/pets/{petId}/visits/new", "nodes": ["org.springframework.samples.petclinic.owner.VisitController#processNewVisitForm", "org.springframework.samples.petclinic.owner.Pet#addVisit"], "assignmentSites": [] }
-  },
-  {
-    "feature": "Veterinarians",
-    "scenario": "List the clinic's veterinarians",
-    "given": "veterinarians registered in the clinic",
-    "when": "the vets page is requested",
-    "then": "the vets and their specialties are listed",
-    "type": "happy-path", "priority": "medium",
-    "verifiedBy": ["ClinicServiceTests#shouldFindVets"],
-    "gap": false,
-    "coverage": { "level": "full", "untested": [] },
-    "evidence": { "entryPoint": "http:GET /vets.html", "nodes": ["org.springframework.samples.petclinic.vet.VetController#showVetList"], "assignmentSites": [] }
-  }
+  {"feature":"Site","scenario":"Show the welcome page","given":"a visitor opens the clinic site","when":"they GET /","then":"the welcome page is rendered","type":"happy-path","priority":"medium","verifiedBy":[],"gap":true,"coverage":{"level":"thin","untested":["renders welcome view"]},"evidence":{"entryPoint":"http:GET /","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Site","scenario":"Trigger the demo error page","given":"the intentional failure endpoint","when":"a visitor GETs /oups","then":"an exception is raised and the error page is shown (500)","type":"edge-case","priority":"medium","verifiedBy":["CrashControllerTests#triggerException","CrashControllerIntegrationTests#triggerExceptionHtml","CrashControllerIntegrationTests#triggerExceptionJson"],"gap":false,"coverage":{"level":"full","untested":[]},"evidence":{"entryPoint":"http:GET /oups","covers":[],"nodes":[],"assignmentSites":[]}},
+
+  {"feature":"Owners","scenario":"Show the find-owners form","given":"a user wants to look up an owner","when":"they GET /owners/find","then":"the search form is displayed","type":"happy-path","priority":"medium","verifiedBy":["OwnerControllerTests#initFindForm"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /owners/find","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Owners","scenario":"Search owners by last name","given":"owners exist","when":"the search is submitted via GET /owners","then":"matching owners are listed; one match redirects to the owner, none re-shows the form with an error","type":"happy-path","priority":"medium","verifiedBy":["OwnerControllerTests#processFindFormSuccess","OwnerControllerTests#processFindFormByLastName","OwnerControllerTests#processFindFormNoOwnersFound"],"gap":false,"coverage":{"level":"full","untested":[]},"evidence":{"entryPoint":"http:GET /owners","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Owners","scenario":"Show the new-owner form","given":"a user wants to register an owner","when":"they GET /owners/new","then":"the empty owner form is displayed","type":"happy-path","priority":"medium","verifiedBy":["OwnerControllerTests#initCreationForm"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /owners/new","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Owners","scenario":"Register a new owner","given":"valid owner details","when":"the form is submitted via POST /owners/new","then":"the owner is created and the user is redirected to their page; invalid input re-shows the form","type":"happy-path","priority":"high","verifiedBy":["OwnerControllerTests#processCreationFormSuccess","OwnerControllerTests#processCreationFormHasErrors"],"gap":false,"coverage":{"level":"full","untested":[]},"evidence":{"entryPoint":"http:POST /owners/new","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Owners","scenario":"View an owner's details","given":"an owner exists","when":"a user GETs /owners/{ownerId}","then":"the owner with their pets and visits is shown","type":"happy-path","priority":"medium","verifiedBy":["OwnerControllerTests#showOwner"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /owners/{ownerId}","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Owners","scenario":"Show the edit-owner form","given":"an owner exists","when":"a user GETs /owners/{ownerId}/edit","then":"the form is pre-filled with the owner's data","type":"happy-path","priority":"medium","verifiedBy":["OwnerControllerTests#initUpdateOwnerForm"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /owners/{ownerId}/edit","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Owners","scenario":"Update an owner","given":"an existing owner","when":"edited details are submitted via POST /owners/{ownerId}/edit","then":"the owner is updated and shown; invalid input or an id mismatch re-shows the form","type":"happy-path","priority":"high","verifiedBy":["OwnerControllerTests#processUpdateOwnerFormSuccess","OwnerControllerTests#processUpdateOwnerFormUnchangedSuccess","OwnerControllerTests#processUpdateOwnerFormHasErrors","OwnerControllerTests#processUpdateOwnerFormWithIdMismatch"],"gap":false,"coverage":{"level":"full","untested":[]},"evidence":{"entryPoint":"http:POST /owners/{ownerId}/edit","covers":[],"nodes":[],"assignmentSites":[]}},
+
+  {"feature":"Pets","scenario":"Show the new-pet form","given":"an owner exists","when":"a user GETs /owners/{ownerId}/pets/new","then":"the new-pet form (with pet types) is displayed","type":"happy-path","priority":"medium","verifiedBy":["PetControllerTests#initCreationForm"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /owners/{ownerId}/pets/new","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Pets","scenario":"Add a pet to an owner","given":"valid pet details","when":"submitted via POST /owners/{ownerId}/pets/new","then":"the pet is added to the owner; blank/duplicate name, missing type or invalid birth date re-show the form","type":"happy-path","priority":"high","verifiedBy":["PetControllerTests#processCreationFormSuccess","PetControllerTests#processCreationFormWithBlankName","PetControllerTests#processCreationFormWithDuplicateName","PetControllerTests#processCreationFormWithMissingPetType","PetControllerTests#processCreationFormWithInvalidBirthDate"],"gap":false,"coverage":{"level":"full","untested":[]},"evidence":{"entryPoint":"http:POST /owners/{ownerId}/pets/new","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Pets","scenario":"Show the edit-pet form","given":"a pet exists","when":"a user GETs /owners/{ownerId}/pets/{petId}/edit","then":"the form is pre-filled with the pet's data","type":"happy-path","priority":"medium","verifiedBy":["PetControllerTests#initUpdateForm"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /owners/{ownerId}/pets/{petId}/edit","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Pets","scenario":"Update a pet","given":"an existing pet","when":"edited details are submitted via POST /owners/{ownerId}/pets/{petId}/edit","then":"the pet is updated; blank/duplicate name or invalid birth date re-show the form","type":"happy-path","priority":"high","verifiedBy":["PetControllerTests#processUpdateFormSuccess","PetControllerTests#processUpdateFormWithSameName","PetControllerTests#processUpdateFormWithDuplicateName","PetControllerTests#processUpdateFormWithInvalidBirthDate","PetControllerTests#processUpdateFormWithBlankName"],"gap":false,"coverage":{"level":"full","untested":[]},"evidence":{"entryPoint":"http:POST /owners/{ownerId}/pets/{petId}/edit","covers":[],"nodes":[],"assignmentSites":[]}},
+
+  {"feature":"Visits","scenario":"Show the new-visit form","given":"a pet exists","when":"a user GETs /owners/{ownerId}/pets/{petId}/visits/new","then":"the new-visit form is displayed","type":"happy-path","priority":"medium","verifiedBy":["VisitControllerTests#initNewVisitForm"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /owners/{ownerId}/pets/{petId}/visits/new","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Visits","scenario":"Book a visit for a pet","given":"a pet and a valid visit","when":"submitted via POST /owners/{ownerId}/pets/{petId}/visits/new","then":"the visit is recorded against the pet; invalid input (incl. a non-future date) re-shows the form","type":"happy-path","priority":"high","verifiedBy":["VisitControllerTests#processNewVisitFormSuccess","VisitControllerTests#processNewVisitFormHasErrors","VisitControllerTests#processNewVisitFormHasErrorsWhenVisitDateIsNotInFuture"],"gap":false,"coverage":{"level":"full","untested":[]},"evidence":{"entryPoint":"http:POST /owners/{ownerId}/pets/{petId}/visits/new","covers":[],"nodes":[],"assignmentSites":[]}},
+
+  {"feature":"Veterinarians","scenario":"List veterinarians (HTML)","given":"vets are registered","when":"a user GETs /vets.html","then":"the paged vet list page is rendered","type":"happy-path","priority":"medium","verifiedBy":["VetControllerTests#showVetListHtml"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /vets.html","covers":[],"nodes":[],"assignmentSites":[]}},
+  {"feature":"Veterinarians","scenario":"List veterinarians (JSON)","given":"vets are registered","when":"a client GETs /vets","then":"the vets are returned as JSON","type":"happy-path","priority":"medium","verifiedBy":["VetControllerTests#showResourcesVetList"],"gap":false,"coverage":{"level":"partial","untested":[]},"evidence":{"entryPoint":"http:GET /vets","covers":[],"nodes":[],"assignmentSites":[]}}
 ]

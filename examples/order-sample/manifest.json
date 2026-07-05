@@ -845,9 +845,9 @@
     }
   },
   "project" : {
-    "commit" : "76492bcaf3deb534e92897f9e4d5f57aaf66f3dc",
-    "commitMessage" : "chore(examples): regenerate order-sample\n\nReflects the per-endpoint use-case model and the interactive diagram renderer\n(pan/zoom, expand modal, copy-source).\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
-    "generatedAt" : "2026-07-04T23:01:38-03:00",
+    "commit" : "6fd06d07d93269f436192e385174c52c549d2da9",
+    "commitMessage" : "chore(examples): regenerate order-sample\n\nPicks up event-flow support, the choreography section, category/feature grouping and\nthe per-feature count.\n\nCo-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>",
+    "generatedAt" : "2026-07-04T23:43:39-03:00",
     "name" : "order-sample"
   }
 }
